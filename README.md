@@ -92,6 +92,34 @@ Measured on this machine (CPU, `LAYA_PRELOAD=1`): ~0.7–1.0 s for a `route` que
 ~1.3–2.0 s for a `rank` question with 12 candidates — hence `LAYA_TIMEOUT_S=4.0`. A Laya
 timeout or error is recorded and never blocks a fetch.
 
+## Operations
+
+```powershell
+uv run bucketio lreg status        # stack health (DB, Laya, treg, web)
+uv run bucketio report --since 7d  # routes, calls, $ saved, Laya agreement
+uv run bucketio calibrate          # fit temperatures + show the activation gate
+uv run bucketio unmerge 412        # undo a soft merge
+.\scripts\backup.ps1               # online SQLite backup -> backups/
+```
+
+`do_not_contact = 1` contacts are never exported (CSV or `/api/export`). Concurrent
+identical fetches are serialised per identity, so a duplicate in flight costs nothing extra.
+
+## Results (live end-to-end: mock Treg + real Laya sidecar, `shadow`)
+
+| Input | Route | Result |
+|---|---|---|
+| Jane Doe / Acme Inc | `treg_find` | jane.doe@acme.com (valid) |
+| John Smith / Acme | `treg_find` | john.smith@acme.com (valid) |
+| Mary Jones / Acme Inc | `pattern_verify` | mary.jones@acme.com — 1 verify, 0 finds |
+| Casper Ghost / Ghost Co | `generate` | casper.ghost@ghost.co (pattern_guess) |
+| Peter Gibbons / Initech | `treg_find` | catch-all domain learned from the hit |
+| Milton Waddams / Initech | `catch_all` | 0 Treg calls |
+
+Report: `find=4 verify=2 cost=$0.0175 est_saved=$0.0115`; Laya answered all 6 questions
+(`routed_model: english`, `applied: 0`) with truth backfilled; calibration fitted 1 row and
+correctly enabled nothing (< 50 samples).
+
 ## Layout
 
 ```
