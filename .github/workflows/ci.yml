@@ -24,8 +24,8 @@ jobs:
     env:
       UV_PYTHON: ${{ matrix.python }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
         with:
           enable-cache: true
       - name: Install
@@ -39,8 +39,8 @@ jobs:
     env:
       UV_PYTHON: "3.13"
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
         with:
           enable-cache: true
       - name: Install
@@ -51,3 +51,4 @@ jobs:
           uv run bucketio init
           uv run bucketio fetch "Jane Doe" "Acme Inc" --json > /tmp/fetch.json
           uv run python -c "import json; d=json.load(open('/tmp/fetch.json')); assert d['email']=='jane.doe@acme.com', d; assert d['route']=='treg_find', d; print('smoke ok:', d['email'], d['route'])"
+
