@@ -315,3 +315,42 @@ the accepted-but-unused `laya` parameter and `laya_decisions`.
 **Next:** Pass 5 wires Laya into `resolver.fetch` (`laya_decisions`, the `laya`
 parameter) — the report's agreement metric is ready for it.
 
+
+---
+
+## Pass 5 — Laya in shadow mode (done 2026-09-24)
+
+- `bucketio/resolver.py` now resolves a Laya client via `_laya_for()` (`off` -> None,
+  otherwise the injected client or a fresh `LayaClient()` when enabled). In shadow
+  (and, for now, `active`) Laya is asked and logged; it **never** changes a route,
+  email, status, cost, candidate or outcome — verified by a golden test that runs the
+  same sequence on two fresh DBs (`off` vs `shadow`) and asserts identical results.
+- Questions wired exactly as §3.5:
+  - `identity` (Q1) — only in the 80–95 identity gray zone, with the closest existing
+    contact as the `existing` state.
+  - `route` (Q2) — only in the routing gray window: best posterior in [0.45, 0.60) or
+    `verified_hits == 1`, and only when the route taken was `pattern_verify`/`treg_find`.
+  - `rank` (Q3) — every `generate` and every `pattern_verify` (candidates = the verify
+    target + up to 11 rendered alternatives, capped by the builder).
+  - `plausible` (Q4) — every `treg_find` hit.
+- Laya is asked **outside** the final write transaction (a slow model never holds the
+  SQLite write lock); one `laya_decisions` row per question is written inside the same
+  transaction as its `lookups` row, `applied = 0` always.
+- Truth backfill convention (consumed by `report.py`):
+  - `identity` -> `valid` when the incoming fetch landed on the existing contact's exact
+    email, else `invalid` (ground truth for "same person").
+  - `route` -> `valid` when the route produced a `valid` email, else `invalid`.
+  - `plausible` -> `valid` when the find hit verified `valid`, else NULL.
+  - `rank` -> the criteria key (`c1`…) of the candidate that verified valid, else NULL.
+- Timeout/error policy: every Laya exception is caught into the row's `error` column
+  (`timeout` for `httpx.TimeoutException`); the fetch is unaffected.
+- Tests: `tests/test_resolver_shadow.py` — 7 tests (golden, per-question counts,
+  gray-zone identity, timeout safety, rank truth, off-mode silence, active==shadow).
+  Full suite **175 passed**.
+- Live smoke (this machine): `laya-serve` 0.3.20 on CPU, warm calls 450–624 ms,
+  `routed_model: english`; the first (cold) call exceeded the 1.5 s default, so
+  `.env.example`/`lreg.yaml` now use `LAYA_TIMEOUT_S=2.5`.
+
+**Next:** Pass 6 — `calibrate.py` (temperature fit + accuracy vs rules per question
+type), `LAYA_MODE=active` gated on `accuracy > rules_acc` and `n_samples >= 50`,
+reversible via `LAYA_MODE=shadow`.

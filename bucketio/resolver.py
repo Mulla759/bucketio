@@ -1,8 +1,11 @@
 """Resolver pipeline: normalize -> identify -> route R1-R5 -> learn -> record.
 
-Laya is accepted but unused in this pass; Pass 5 wires it into the same
-``fetch()`` signature. All writes join the caller's connection through
-``db.tx`` and nothing here commits outside those contexts.
+Laya runs in **shadow** mode here: its answers are asked and stored in
+``laya_decisions`` but never change a route, an email or an outcome. Pass 6
+implements ``active`` (calibrated, gated per question type); until then
+``active`` behaves exactly like ``shadow``. All writes join the caller's
+connection through ``db.tx``; Laya is asked *outside* the write transaction so
+a slow model never holds the SQLite write lock.
 """
 
 from __future__ import annotations
@@ -12,8 +15,19 @@ import sqlite3
 import time
 from dataclasses import dataclass, field
 
+from rapidfuzz import fuzz
+
 from . import db, identity, patterns
 from .config import Settings, get_settings
+from .laya_client import (
+    LayaAnswer,
+    LayaClient,
+    LayaQuestion,
+    q_identity,
+    q_plausible,
+    q_rank,
+    q_route,
+)
 from .normalize import NameParts, normalize_company, normalize_name
 from .treg import NotConfigured, TregClient, TregResult, make_client
 
@@ -151,6 +165,76 @@ def _next_pattern(
     return None
 
 
+def _best_fuzzy_row(
+    conn: sqlite3.Connection, name_key: str, company_id: int
+) -> tuple[sqlite3.Row | None, float]:
+    """Closest existing contact at a company (used for the Q1 identity state)."""
+    rows = conn.execute(
+        "SELECT * FROM contacts WHERE company_id = ? AND merged_into IS NULL",
+        (company_id,),
+    ).fetchall()
+    best: sqlite3.Row | None = None
+    best_score = 0.0
+    for row in rows:
+        score = float(fuzz.token_set_ratio(name_key, row["name_key"]))
+        if score > best_score:
+            best, best_score = row, score
+    return best, best_score
+
+
+def _known_formats(conn: sqlite3.Connection, domain: str) -> list[str]:
+    stats = patterns.pattern_stats(conn, domain)
+    ordered = sorted(
+        stats.items(), key=lambda kv: (-kv[1]["hits"], _pattern_index(kv[0]))
+    )
+    return [f"{name} ({s['hits']} valid)" for name, s in ordered if s["hits"]][:5]
+
+
+def _similar_formats(conn: sqlite3.Connection) -> list[str]:
+    rows = conn.execute(
+        "SELECT pattern FROM pattern_priors ORDER BY prior DESC LIMIT 3"
+    ).fetchall()
+    return [row["pattern"] for row in rows]
+
+
+def _truth_for(item: dict, status: str, verified_email: str | None = None) -> str | None:
+    """Ground truth for a shadow row once the outcome is known.
+
+    identity/route/plausible -> "valid" | "invalid" (report maps A/B);
+    rank -> the criteria key ("c1"...) of the candidate that verified valid,
+    else NULL (no verified candidate = no ground truth).
+    """
+    question = item["question_name"]
+    if question == "identity":
+        # ground truth = did the incoming fetch land on the existing contact's
+        # exact email (same real person), or not
+        existing_email = (item.get("existing_email") or "").strip().lower()
+        if existing_email:
+            return "valid" if (verified_email or "").strip().lower() == existing_email else "invalid"
+        return "valid" if status == "valid" else "invalid"
+    if question == "route":
+        return "valid" if status == "valid" else "invalid"
+    if question == "plausible":
+        return "valid" if status == "valid" else None
+    if question == "rank":
+        if status != "valid":
+            return None
+        keys = item.get("candidate_keys") or {}
+        for target in (verified_email, item.get("verified_email")):
+            if target and target in keys:
+                return keys[target]
+        return None
+    return None
+
+
+def _laya_for(laya: object | None, settings: Settings) -> object | None:
+    """A live Laya client, or None when the mode is off / the client is disabled."""
+    if settings.laya_mode == "off":
+        return None
+    client = laya if laya is not None else LayaClient()
+    return client if getattr(client, "enabled", False) else None
+
+
 def _safe_find(
     client: TregClient, tracked: _Tracked, name: str, company: str
 ) -> TregResult:
@@ -199,11 +283,12 @@ def fetch(
     client: TregClient | None = None,
 ) -> FetchResult:
     """Resolve one (name, company) through R1-R5 and record the audit trail."""
-    _ = laya  # Pass 5 wires Laya into this same signature
     started = time.perf_counter()
     settings = get_settings()
     if client is None:
         client = make_client(settings)
+    laya_client = _laya_for(laya, settings)
+    pending: list[dict] = []
     tracked = _Tracked()
     parts = normalize_name(name)
 
@@ -216,6 +301,24 @@ def fetch(
             contact_id = match.contact_id
             identity.touch_seen(conn, contact_id)
         identity_method = match.method
+        if laya_client is not None and match.gray_zone:
+            existing, score = _best_fuzzy_row(conn, parts.name_key, company_id)
+            if existing is not None:
+                pending.append(
+                    {
+                        "question_name": "identity",
+                        "question": q_identity(
+                            existing={
+                                "name": existing["full_name"],
+                                "company": company,
+                                "email": existing["email"] or "",
+                            },
+                            incoming={"name": name, "company": company},
+                        ),
+                        "rules_answer": "new",
+                        "existing_email": existing["email"] or "",
+                    }
+                )
 
     company_row = conn.execute(
         "SELECT * FROM companies WHERE id = ?", (company_id,)
@@ -302,6 +405,35 @@ def fetch(
                     continue
                 candidate_email = f"{local}@{domain}"
                 posterior_value = patterns.posterior(conn, domain, pattern_name)
+                if laya_client is not None and tries == 0:
+                    alternatives: list[str] = []
+                    for other in patterns.PATTERNS:
+                        rendered = patterns.render(other, parts)
+                        if not rendered:
+                            continue
+                        other_email = f"{rendered}@{domain}"
+                        if other_email != candidate_email:
+                            alternatives.append(other_email)
+                    rank_candidates = [candidate_email] + alternatives[:11]
+                    pending.append(
+                        {
+                            "question_name": "rank",
+                            "question": q_rank(
+                                person=name,
+                                company=company,
+                                domain=domain,
+                                known_formats=_known_formats(conn, domain),
+                                similar_formats=_similar_formats(conn),
+                                candidate_emails=rank_candidates,
+                            ),
+                            "rules_answer": candidate_email,
+                            "candidate_keys": {
+                                candidate: f"c{index + 1}"
+                                for index, candidate in enumerate(rank_candidates)
+                            },
+                            "verified_email": candidate_email,
+                        }
+                    )
                 result = _safe_verify(client, tracked, candidate_email)
                 tries += 1
                 if result.status == "valid":
@@ -360,6 +492,19 @@ def fetch(
             matched = patterns.reverse_match(local, parts)
             email_pattern = matched[0] if matched else "custom"
             high_pattern_email = email if matched else None
+            if laya_client is not None:
+                pending.append(
+                    {
+                        "question_name": "plausible",
+                        "question": q_plausible(
+                            person=name,
+                            company=company,
+                            treg_email=email,
+                            learned_format=email_pattern,
+                        ),
+                        "rules_answer": email,
+                    }
+                )
             if result.status == "catch_all":
                 with db.tx(conn):
                     _set_catch_all(conn, company_id)
@@ -403,6 +548,29 @@ def fetch(
                 alternates = [candidate.email for candidate in generated[1:GENERATE_K]]
                 email_source = "pattern"
                 email_pattern = top.pattern
+                if laya_client is not None:
+                    rank_candidates = [candidate.email for candidate in generated]
+                    pending.append(
+                        {
+                            "question_name": "rank",
+                            "question": q_rank(
+                                person=name,
+                                company=company,
+                                domain=domain,
+                                known_formats=_known_formats(conn, domain),
+                                similar_formats=_similar_formats(conn),
+                                candidate_emails=rank_candidates,
+                            ),
+                            "rules_answer": top.email,
+                            "candidate_keys": {
+                                candidate: f"c{index + 1}"
+                                for index, candidate in enumerate(rank_candidates)
+                            },
+                            "verified_email": top.email
+                            if settings.generate_verify_top
+                            else None,
+                        }
+                    )
                 if settings.generate_verify_top:
                     result = _safe_verify(client, tracked, top.email)
                     verified_candidate = top.email
@@ -426,6 +594,40 @@ def fetch(
                                 conn, domain, top.pattern, "invalid"
                             )
                         verified_outcome = "invalid"
+
+    # --- Laya Q2: verify-vs-find, only in the routing gray window -----------
+    if laya_client is not None and route in ("pattern_verify", "treg_find") and domain:
+        best_now = patterns.best_pattern(conn, domain)
+        if best_now is not None:
+            stats_now = patterns.pattern_stats(conn, domain)
+            posterior_now, hits_now = best_now[1], best_now[2]
+            misses_now = int(stats_now.get(best_now[0], {}).get("misses", 0))
+            if (0.45 <= posterior_now < 0.60) or hits_now == 1:
+                company_now = conn.execute(
+                    "SELECT is_catch_all FROM companies WHERE id = ?", (company_id,)
+                ).fetchone()
+                pending.append(
+                    {
+                        "question_name": "route",
+                        "question": q_route(
+                            domain=domain,
+                            best_pattern=best_now[0],
+                            posterior=posterior_now,
+                            verified_hits=hits_now,
+                            misses=misses_now,
+                            patterns_seen=len(stats_now),
+                            catch_all=bool(
+                                company_now and company_now["is_catch_all"]
+                            ),
+                        ),
+                        "rules_answer": route,
+                    }
+                )
+
+    # --- Laya (shadow): ask OUTSIDE the write transaction -------------------
+    laya_rows: list[tuple[dict, LayaAnswer]] = []
+    for item in pending:
+        laya_rows.append((item, laya_client.ask(item["question"])))
 
     est_saved = max(0.0, float(settings.treg_find_cost) - tracked.cost)
     if route == "treg_find":
@@ -522,6 +724,28 @@ def fetch(
                     float(candidate.rules_score),
                     rank,
                     outcome,
+                ),
+            )
+
+        for item, answer in laya_rows:
+            conn.execute(
+                """
+                INSERT INTO laya_decisions
+                    (lookup_id, question, routed_model, answer, confidence,
+                     probs_json, rules_answer, applied, truth, latency_ms, error)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+                """,
+                (
+                    lookup_id,
+                    item["question_name"],
+                    answer.routed_model,
+                    answer.answer,
+                    answer.confidence,
+                    json.dumps(answer.probs, ensure_ascii=False),
+                    item["rules_answer"],
+                    _truth_for(item, status, email),
+                    answer.latency_ms,
+                    answer.error,
                 ),
             )
 
