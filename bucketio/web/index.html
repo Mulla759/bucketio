@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BucketIO — contacts</title>
+  <meta name="description" content="BucketIO: fetch, cache and verify business emails.">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <h1>BucketIO</h1>
+    <p class="tagline">Fetch, cache and verify business emails.</p>
+  </header>
+
+  <div id="banner" class="banner" role="alert" hidden>
+    <span id="banner-message"></span>
+    <button id="banner-close" class="icon-button" type="button" aria-label="Dismiss message">×</button>
+  </div>
+
+  <main>
+    <section class="panel" aria-labelledby="fetch-heading">
+      <h2 id="fetch-heading">Fetch a contact</h2>
+      <form id="fetch-form" class="fetch-form" autocomplete="off">
+        <div class="field">
+          <label for="fetch-name">Name</label>
+          <input id="fetch-name" name="name" type="text" required placeholder="Jane Doe">
+        </div>
+        <div class="field">
+          <label for="fetch-company">Company</label>
+          <input id="fetch-company" name="company" type="text" required placeholder="Acme Inc">
+        </div>
+        <div class="field field-check">
+          <label class="checkbox">
+            <input id="fetch-force" name="force" type="checkbox">
+            Force re-check (ignore cache)
+          </label>
+        </div>
+        <button id="fetch-submit" class="button primary" type="submit" data-api>Fetch</button>
+      </form>
+      <div id="result" class="result" hidden></div>
+    </section>
+
+    <section class="panel" aria-labelledby="report-heading">
+      <div class="panel-head">
+        <h2 id="report-heading">Report</h2>
+        <button id="report-refresh" class="button ghost" type="button" data-api>Refresh</button>
+      </div>
+      <div id="report" class="report-strip" role="group" aria-label="Cumulative report">
+        <div class="stat">
+          <span id="stat-fetches" class="stat-value">-</span>
+          <span class="stat-label">Fetches</span>
+        </div>
+        <div class="stat">
+          <span id="stat-find-avoided" class="stat-value">-</span>
+          <span class="stat-label">Find calls avoided</span>
+        </div>
+        <div class="stat">
+          <span id="stat-verify-calls" class="stat-value">-</span>
+          <span class="stat-label">Verify calls</span>
+        </div>
+        <div class="stat">
+          <span id="stat-saved" class="stat-value">-</span>
+          <span class="stat-label">Est. $ saved</span>
+        </div>
+        <div class="stat">
+          <span id="stat-laya" class="stat-value">-</span>
+          <span class="stat-label">Laya vs rules</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="contacts-heading">
+      <div class="panel-head">
+        <h2 id="contacts-heading">Contacts</h2>
+        <div class="toolbar">
+          <div class="field field-inline">
+            <label for="search" class="visually-hidden">Search contacts</label>
+            <input id="search" type="search" placeholder="Search name, company, email…">
+          </div>
+          <div class="field field-inline">
+            <label for="status-filter" class="visually-hidden">Filter by status</label>
+            <select id="status-filter">
+              <option value="">All statuses</option>
+              <option value="valid">valid</option>
+              <option value="invalid">invalid</option>
+              <option value="catch_all">catch_all</option>
+              <option value="risky">risky</option>
+              <option value="pattern_guess">pattern_guess</option>
+              <option value="unverified">unverified</option>
+              <option value="unknown">unknown</option>
+              <option value="no_domain">no_domain</option>
+              <option value="not_found">not_found</option>
+            </select>
+          </div>
+          <form id="import-form" class="import-form">
+            <label for="csv-file">CSV</label>
+            <input id="csv-file" name="file" type="file" accept=".csv,text/csv">
+            <button id="import-submit" class="button" type="submit" data-api>Import</button>
+          </form>
+          <a id="export-link" class="button" href="/api/export" download="contacts.csv" data-api>Export CSV</a>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="contacts-table">
+          <caption class="visually-hidden">Contacts; select a row to see lookup history</caption>
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Company</th>
+              <th scope="col">Email</th>
+              <th scope="col">High-pattern email</th>
+              <th scope="col">Status</th>
+              <th scope="col">Confidence</th>
+              <th scope="col">Seen</th>
+              <th scope="col">Last verified</th>
+              <th scope="col">Route</th>
+            </tr>
+          </thead>
+          <tbody id="contacts-body"></tbody>
+        </table>
+      </div>
+      <p id="table-empty" class="empty-note" hidden>No contacts yet — fetch someone above or import a CSV.</p>
+
+      <div class="pager">
+        <button id="prev-page" class="button ghost" type="button" data-api>Previous</button>
+        <span id="page-info" class="page-info">-</span>
+        <button id="next-page" class="button ghost" type="button" data-api>Next</button>
+      </div>
+    </section>
+
+    <section id="detail" class="panel" aria-labelledby="detail-heading" hidden>
+      <div class="panel-head">
+        <h2 id="detail-heading">Contact detail</h2>
+        <button id="detail-close" class="button ghost" type="button">Close</button>
+      </div>
+      <div id="detail-body"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>BucketIO local UI — plain HTML/CSS/JS, no framework.</p>
+  </footer>
+</body>
+</html>

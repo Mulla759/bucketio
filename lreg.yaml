@@ -1,0 +1,37 @@
+# Lreg = Laya + treg + BucketIO. One file that describes the whole stack.
+# `scripts/setup_lreg.ps1` (Windows) / `scripts/setup_lreg.sh` (macOS/Linux) read this;
+# `bucketio lreg status` reports on it at runtime.
+version: 1
+
+bucketio:
+  db_path: ./bucketio.db
+  web:
+    host: 127.0.0.1
+    port: 8080
+  # off | shadow | active  (shadow = Laya answers are logged, never applied)
+  laya_mode: shadow
+
+laya:
+  enabled: true
+  # venv kept separate from the app venv: the model stack (torch) is heavy
+  venv: .laya-venv
+  install: "laya[serve]>=0.3.20"
+  host: 127.0.0.1
+  port: 8001
+  device: cpu
+  preload: true
+  model: convaiinnovations/laya
+  api_key_env: LAYA_API_KEY
+  default_api_key: change-me
+  # CPU on this class of machine warms at ~0.5 s/call; 2.5 s tolerates a cold checkpoint
+  timeout_s: 2.5
+  log_dir: .lreg/logs
+  pid_file: .lreg/laya.pid
+
+treg:
+  # mock | http | cli
+  mode: http
+  base_url: https://treg.to
+  token_env: TREG_TOKEN
+  # falls back to ~/.treg/config.json (written by `treg login`) when token_env is empty
+  token_file: ~/.treg/config.json

@@ -1,23 +1,23 @@
-# PROGRESS
+﻿# PROGRESS
 
 Append one entry per completed pass: what was done, anything stubbed, what is next.
 A pass is done only when `pytest -q` is green.
 
 ---
 
-## Pass 0 — Scaffold (done 2026-09-24)
+## Pass 0 â€” Scaffold (done 2026-09-24)
 
 - `git init` (branch `main`), initial commit of `bucketio.md` + `.gitignore`.
 - `pyproject.toml` (hatchling, console script `bucketio = bucketio.cli:main`),
-  `requires-python = ">=3.11,<3.14"` and `.python-version` = 3.13 (laya supports 3.10–3.13;
+  `requires-python = ">=3.11,<3.14"` and `.python-version` = 3.13 (laya supports 3.10â€“3.13;
   system Python here is 3.14, so 3.13 is the build interpreter).
-- `bucketio/config.py` — pydantic-settings, safe offline defaults
+- `bucketio/config.py` â€” pydantic-settings, safe offline defaults
   (`TREG_MODE=mock`, `LAYA_MODE=off`), token falls back to `~/.treg/config.json`.
-- `bucketio/db.py` — `connect()` (WAL, FK, busy_timeout), `migrate()` (idempotent),
+- `bucketio/db.py` â€” `connect()` (WAL, FK, busy_timeout), `migrate()` (idempotent),
   `tx()` context manager, `PATTERN_PRIORS` seed.
-- `bucketio/schema.sql` — full §4 schema, shipped **inside the package** (so it is
+- `bucketio/schema.sql` â€” full Â§4 schema, shipped **inside the package** (so it is
   importable and included in the wheel) rather than at repo root. Single source of truth.
-- `bucketio/cli.py` — minimal typer app (`bucketio --help`, `bucketio version`).
+- `bucketio/cli.py` â€” minimal typer app (`bucketio --help`, `bucketio version`).
 - `.env.example`, `README.md`, `tests/conftest.py`, `tests/test_db.py`.
 - Deps: runtime (pydantic, typer, httpx, rapidfuzz, Unidecode, dnspython, fastapi,
   uvicorn, python-multipart) + extras `dev` (pytest, respx) and `laya` (`laya[serve]>=0.3.20`).
@@ -32,34 +32,34 @@ Pass 5 client groundwork in worktree `wt/laya`; laya[serve] install on Python 3.
 
 ---
 
-## Pass 1+2 — Normalization, identity, pattern engine (done 2026-09-24)
+## Pass 1+2 â€” Normalization, identity, pattern engine (done 2026-09-24)
 
-- `bucketio/normalize.py` — `fold_ascii` (Unidecode → lowercase → keep `[a-z0-9]`,
+- `bucketio/normalize.py` â€” `fold_ascii` (Unidecode â†’ lowercase â†’ keep `[a-z0-9]`,
   hyphens become single spaces), `NameParts` (full_name, first, middle, last,
   name_key, initials, last_variants), `normalize_name` (comma last-first, middle
   names, suffix stripping, particles kept with the last name, non-Latin fallback),
   `canonical_first_name`, `NICKNAMES` (95 entries, canonical direction), `SUFFIXES`,
   `PARTICLES`, `normalize_company` (drops leading "the" + legal/entity suffixes).
-- `bucketio/identity.py` — `get_or_create_company` (alias → company_key → domain →
+- `bucketio/identity.py` â€” `get_or_create_company` (alias â†’ company_key â†’ domain â†’
   insert, alias always written, domain backfilled when NULL, `updated_at` bumped),
   `resolve_contact` (exact on `(name_key, company_id)`, else rapidfuzz
-  `token_set_ratio`: ≥95 fuzzy_rule, 80–95 gray zone → new, <80 new),
+  `token_set_ratio`: â‰¥95 fuzzy_rule, 80â€“95 gray zone â†’ new, <80 new),
   `create_contact`, `touch_seen`, `find_contact_by_email` (case-insensitive,
   skips merged). No function commits; all writes join the caller's `db.tx`.
-- `bucketio/patterns.py` — the 12 `PATTERNS` in spec order, `render`,
+- `bucketio/patterns.py` â€” the 12 `PATTERNS` in spec order, `render`,
   `render_variants` (joined + token last variants), `reverse_match`, `posterior`
   (Beta mean, ALPHA=2, prior fallback 0.02), `pattern_stats`, `best_pattern`,
   `record_outcome` (valid/invalid/catch_all upsert), `Candidate`, `candidates`
-  (prior × posterior, deduped, PATTERNS tie-break, top k), `reprior` (no-op under
+  (prior Ã— posterior, deduped, PATTERNS tie-break, top k), `reprior` (no-op under
   20 outcomes, else `(sum_hits_p+1)/(total+12)`), `seed_priors`.
 - Tests: `tests/test_normalize.py`, `tests/test_identity.py`, `tests/test_patterns.py`
-  — **47 tests pass** (`uv run pytest -q`, including existing `test_db.py`).
+  â€” **47 tests pass** (`uv run pytest -q`, including existing `test_db.py`).
 
 **Decisions / deviations (spec was silent or ambiguous):**
 - `normalize_company` strips the listed `group`, `holdings`, `technologies`
   suffix words but **not** `labs` (spec explicitly keeps "Acme Labs" distinct).
 - Hyphens fold to a single space (spec allowed space or removal; one rule used
-  everywhere). Apostrophes also fold to a space (`O'Brien` → `o brien`).
+  everywhere). Apostrophes also fold to a space (`O'Brien` â†’ `o brien`).
 - `resolve_contact` exact match returns soft-merged rows as-is (fuzzy excludes
   them per spec; no merge path exists until Pass 7, this avoids UNIQUE errors).
 - `record_outcome(..., "catch_all")` leaves counts untouched and creates a
@@ -69,11 +69,11 @@ Pass 5 client groundwork in worktree `wt/laya`; laya[serve] install on Python 3.
 - `create_contact` never commits and will raise `IntegrityError` on a duplicate
   `(name_key, company_id)`, as the schema's UNIQUE constraint intends.
 
-**Next:** Pass 3 (Treg adapter + resolver R1–R5, mock fixture).
+**Next:** Pass 3 (Treg adapter + resolver R1â€“R5, mock fixture).
 
 ---
 
-## Pass 5 (groundwork) — Laya client
+## Pass 5 (groundwork) â€” Laya client
 
 - `bucketio/laya_client.py`: `LayaQuestion` (frozen) / `LayaAnswer` dataclasses;
   `LayaClient(settings=None)` with `enabled`, `ask()` (never raises), `health()`;
@@ -96,7 +96,7 @@ Pass 5 client groundwork in worktree `wt/laya`; laya[serve] install on Python 3.
   200-503-off / builders / parse variants / golden determinism). Full suite
   `uv run pytest -q`: **30 passed** (24 + 6 existing test_db.py).
 
-**Real `POST /v1/systemone` schema** (fetched 2026-09-24, laya 0.3.20 —
+**Real `POST /v1/systemone` schema** (fetched 2026-09-24, laya 0.3.20 â€”
 https://github.com/NandhaKishorM/laya/blob/main/laya/serve.py and
 https://github.com/NandhaKishorM/laya/blob/main/laya/agent.py `_decode_answers`):
 
@@ -114,8 +114,8 @@ entropy>, "answer_confidence": <max(p)>, "action": {"act_probability": ...}}},
 in-process transport use). `GET /health` -> 200 `{"status": "ok", "loaded":
 bool, "device": str}`.
 
-**Deviations from bucketio.md §3.5:**
-- States/criteria match §3.5 Q1-Q4 exactly; question **names** are
+**Deviations from bucketio.md Â§3.5:**
+- States/criteria match Â§3.5 Q1-Q4 exactly; question **names** are
   `identity`/`route`/`rank`/`plausible` per the Pass 5 interface (bucketio.md's
   `same_person`/`best_email` were JSON examples, not names).
 - The response label lives in `choice` and probabilities in `probabilities`
@@ -131,7 +131,7 @@ bool, "device": str}`.
 - `routed_model` comes from `routing.model`; the top-level `model` is always
   `laya-rl-agent`, so it is only used as a fallback when it names a checkpoint.
 
-**Next:** resolver wiring (Pass 3 owns `bucketio/resolver.py`) — `LayaClient`,
+**Next:** resolver wiring (Pass 3 owns `bucketio/resolver.py`) â€” `LayaClient`,
 the Q1-Q4 builders and `laya_decisions` rows are ready to consume.
 
 **Verified live (2026-09-24):** `laya-serve` 0.3.20 running on 127.0.0.1:8001 with
@@ -140,38 +140,38 @@ multilingual checkpoints).
 
 ---
 
-## Pass 3 — Treg adapter + resolver (R1–R5)
+## Pass 3 â€” Treg adapter + resolver (R1â€“R5)
 
-- `bucketio/treg.py` — `Status` enum, `TregResult` (email, domain, status, raw,
+- `bucketio/treg.py` â€” `Status` enum, `TregResult` (email, domain, status, raw,
   cost_units, kind), `TregClient` protocol, `NotConfigured`. `map_status()` maps
   Treg words (valid/invalid/catch_all|accept_all|accept-all|is_accept_all/risky/
   not_found|not-found|miss/unknown/None) onto the enum. Three clients:
-  - `TregMockClient` — deterministic, reads `tests/fixtures/treg_mock.json`
+  - `TregMockClient` â€” deterministic, reads `tests/fixtures/treg_mock.json`
     (path overridable), costs from `settings.treg_find_cost` / `treg_verify_cost`;
     miss on an unknown company costs 0; a domain's `not_found: true` reports the
     domain on a miss.
-  - `TregHttpClient` — `POST {base}/call/treg.people.email.find` with
+  - `TregHttpClient` â€” `POST {base}/call/treg.people.email.find` with
     `{"domain","full_name"}` and `.../treg.people.email.verify` with `{"email"}`;
     `X-Treg-Token` (+ `X-Treg-Org` when set); cost from `X-Treg-Cost-Micro`
-    (micro-USD → USD) else config; httpx timeout `treg_timeout_s`.
+    (micro-USD â†’ USD) else config; httpx timeout `treg_timeout_s`.
     Parsing is tolerant: email from `output.email`/`raw.email`; status from
     `output.status`/`raw.status`/`output.verified` (bool/word); domain from
     `raw.domain`/`output.domain`/`raw.website_url`/`raw.company.domain`/email.
-  - `TregCliClient` — `treg call <id> --data <json>`, stdout JSON, cost from a
+  - `TregCliClient` â€” `treg call <id> --data <json>`, stdout JSON, cost from a
     stderr `charged $<usd>` line else config. Both real transports raise
     `NotConfigured` without token/base URL (HTTP) or token (CLI).
   - `make_client()` selects by `TREG_MODE` (mock default).
-- `bucketio/resolver.py` — `FetchResult` + `to_json()` (exact §2.5 keys) and
+- `bucketio/resolver.py` â€” `FetchResult` + `to_json()` (exact Â§2.5 keys) and
   `fetch(conn, name, company, *, force=False, laya=None, client=None)`:
-  normalize/identity → R1 cache_hit → R2 catch_all → R3 pattern_verify
-  (max 2 verifies, next pattern ≥ 0.35, miss recorded before retry) →
-  R4 treg_find (learns the pattern, sets company domain on hit and miss) →
+  normalize/identity â†’ R1 cache_hit â†’ R2 catch_all â†’ R3 pattern_verify
+  (max 2 verifies, next pattern â‰¥ 0.35, miss recorded before retry) â†’
+  R4 treg_find (learns the pattern, sets company domain on hit and miss) â†’
   R5 generate (k=6, `high_pattern_email`, 5 alternates, optional verify-top),
   then one `db.tx` writes the `lookups`, `treg_calls` (raw JSON verbatim) and
-  `candidates` rows. `cost_usd` = spend; `est_saved_usd` = the §3.3 formula.
+  `candidates` rows. `cost_usd` = spend; `est_saved_usd` = the Â§3.3 formula.
   All Treg-call exceptions become `status="error"` results (NotConfigured
   still propagates) so routes can fall through.
-- `tests/fixtures/treg_mock.json` — the §6 fixture (acme/globex/initech/
+- `tests/fixtures/treg_mock.json` â€” the Â§6 fixture (acme/globex/initech/
   umbrella/ghost + `anna ivanova` ASCII-folding case).
 - Tests: `tests/test_treg.py` (29: `map_status` table, mock semantics, respx
   find/verify headers+body+parse+cost fallback, NotConfigured, make_client) and
@@ -179,9 +179,9 @@ multilingual checkpoints).
   TTL expiry, `to_json` keys). Suite: **113 passed** (71 existing + 42 new).
 
 **Deviations / decisions (spec silent or conflicting):**
-- R2 fallback: a catch-all hit deliberately records no pattern stats (§3.10), so
+- R2 fallback: a catch-all hit deliberately records no pattern stats (Â§3.10), so
   Initech has no `best_pattern`; the literal R2 condition ("best_pattern exists
-  with posterior ≥ 0.5") would send the second person back to R4 and break
+  with posterior â‰¥ 0.5") would send the second person back to R4 and break
   acceptance 5. When the domain is catch-all and has **no** pattern rows, R2
   renders the strongest global prior instead; a row with posterior < 0.5 still
   falls through as specified.
@@ -199,8 +199,47 @@ multilingual checkpoints).
 - `candidates` rows are written for R5 generate only; the verified top
   candidate carries `outcome`, `final_score = rules_score`, `laya_prob` NULL.
   `--force` bypasses R1 (and `lookups.forced = 1`).
-- Gray-zone identity is ignored (Pass 3): gray zone → `new` contact,
+- Gray-zone identity is ignored (Pass 3): gray zone â†’ `new` contact,
   `identity_method = "new"`; exact/fuzzy_rule call `touch_seen`.
 
 **Next:** Pass 4 (CLI/API/web consume `fetch`/`to_json`); Pass 5 wires Laya into
 the accepted-but-unused `laya` parameter and `laya_decisions`.
+
+---
+
+## Pass 4 (frontend) â€” static web UI
+
+- `bucketio/web/` â€” exactly three files, no framework, no build step:
+  - `index.html` â€” single semantic page; search box, fetch form (Name + Company +
+    `force`), Â§2.5 result card, contacts table (Name | Company | Email |
+    High-pattern email | Status pill | Confidence | Seen | Last verified | Route),
+    clickable rows â†’ detail panel with lookup history, report strip, CSV import
+    form (multipart field `file`) and export link. Loads `./style.css` + `./app.js`
+    (relative, so FastAPI can serve them from `/static`).
+  - `style.css` â€” plain CSS, dark-first with a `prefers-color-scheme: light`
+    override; system font stack, no external fonts/CDN. Pills: `valid` green,
+    `invalid` red, `catch_all` amber, `risky` orange, `pattern_guess` blue,
+    `unverified`/`unknown`/`no_domain`/`not_found` grey.
+  - `app.js` â€” vanilla ES2020, no dependencies, no `innerHTML` (textContent +
+    `createElement` only). Functions: `api`, `renderResult`, `loadContacts`,
+    `renderTable`, `showDetail`, `loadReport`, `importCsv` (+ `debounce` 200 ms,
+    pill/format helpers, banner, `disableApiControls`, `init`).
+- Endpoints consumed: `POST /api/fetch`, `GET /api/contacts?q=&status=&limit=&offset=`
+  (`{items,total}`), `GET /api/contacts/{id}` (`{contact,lookups}`), `GET /api/report`
+  (`{fetches,routes,treg:{find_calls,verify_calls},est_saved_usd,laya:{agreement,samples}}`),
+  `POST /api/import` (multipart `file`), `GET /api/export` (plain link).
+- Missing report/contact fields render `-` (never throw); "find calls avoided" uses
+  `find_calls_avoided` if present else `fetches - treg.find_calls`. Every fetch is
+  try/catch'd and surfaces errors in the banner. `file://` shows "run `bucketio serve`",
+  disables API controls and skips auto-loads.
+- Verified: `node --check bucketio/web/app.js` clean; `index.html` references the two
+  assets with exact names; a throwaway Node smoke test (temp DOM stub, not committed)
+  exercised boot loads, table/result/detail rendering, report totals, missing-field
+  fallbacks and the `file://` guard â€” all green.
+- Still needs a manual browser check against `bucketio serve` once the Pass 4 backend
+  (`api.py`, `cli.py serve`) exists in this worktree: search/status/paging,
+  `POST /api/fetch` round-trip, CSV import + export download, pill appearance.
+
+**Next:** Pass 3 (`treg.py` + `resolver.py`) and the Pass 4 API (`api.py`,
+`cli.py serve`) so the page can be checked end to end.
+
