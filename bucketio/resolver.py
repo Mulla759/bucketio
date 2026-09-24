@@ -1,23 +1,34 @@
 """Resolver pipeline: normalize -> identify -> route R1-R5 -> learn -> record.
 
-Laya runs in **shadow** mode here: its answers are asked and stored in
-``laya_decisions`` but never change a route, an email or an outcome. Pass 6
-implements ``active`` (calibrated, gated per question type); until then
-``active`` behaves exactly like ``shadow``. All writes join the caller's
-connection through ``db.tx``; Laya is asked *outside* the write transaction so
+Laya is always *asked* through ``laya_client`` and stored in ``laya_decisions``.
+In ``shadow`` (and for every question type the calibration gate has not
+enabled) answers never change a route, an email or an outcome. In ``active``
+the question types listed by ``calibrate.enabled_questions`` may be applied:
+
+* Q1 identity - calibrated "A" >= 0.80 merges into the existing fuzzy contact.
+* Q2 route - calibrated "A"/"B" >= 0.75 forces/skips the pattern verify.
+* Q3 rank - only on the ``generate`` route: blend
+  ``final = (1-W)*rules_score + W*calibrated_prob`` and re-rank.
+* Q4 plausible never changes behaviour.
+
+``rules_answer`` on every row is the criteria key the rules chose ("A"/"B" for
+identity/route/plausible, "c1"... for rank). ``applied`` is 1 only on rows
+whose answer actually changed the outcome. All writes join the caller's
+connection through ``db.tx``; Laya is asked *outside* the write transactions so
 a slow model never holds the SQLite write lock.
 """
 
 from __future__ import annotations
 
 import json
+import math
 import sqlite3
 import time
 from dataclasses import dataclass, field
 
 from rapidfuzz import fuzz
 
-from . import db, identity, patterns
+from . import calibrate, db, identity, patterns
 from .config import Settings, get_settings
 from .laya_client import (
     LayaAnswer,
@@ -35,6 +46,10 @@ FIND_HIT_STATUSES: tuple[str, ...] = ("valid", "catch_all", "risky", "unknown")
 CATCH_ALL_MIN_POSTERIOR = 0.5
 NEXT_PATTERN_MIN_POSTERIOR = 0.35
 GENERATE_K = 6
+IDENTITY_MERGE_MIN_CONF = 0.80
+ROUTE_FOLLOW_MIN_CONF = 0.75
+ROUTE_GRAY_MIN_POSTERIOR = 0.45
+ROUTE_GRAY_MAX_POSTERIOR = 0.60
 
 
 @dataclass
@@ -235,6 +250,59 @@ def _laya_for(laya: object | None, settings: Settings) -> object | None:
     return client if getattr(client, "enabled", False) else None
 
 
+def _temperature(conn: sqlite3.Connection, question: str, n_options: int) -> float:
+    """Fitted temperature for ``(question, n_options)``; 1.0 when uncalibrated."""
+    row = conn.execute(
+        "SELECT temperature FROM laya_calibration WHERE question = ? AND n_options = ?",
+        (question, int(n_options)),
+    ).fetchone()
+    if row is None:
+        return 1.0
+    value = row["temperature"]
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return 1.0
+    number = float(value)
+    return number if math.isfinite(number) and number > 0 else 1.0
+
+
+def _blend_rank(
+    candidates: list[patterns.Candidate],
+    probs: dict[str, float],
+    candidate_keys: dict[str, str],
+    weight: float,
+    temperature: float,
+) -> tuple[list[patterns.Candidate], dict[str, tuple[float, float]]]:
+    """Blend calibrated Laya probabilities into candidate scores and re-rank.
+
+    Returns the re-ordered candidates plus ``email -> (laya_prob, final_score)``.
+    A no-op (original order, empty map) when the distribution is missing or does
+    not cover every candidate, so a partial answer can never distort the blend.
+    """
+    if not candidates or not probs:
+        return candidates, {}
+    calibrated = calibrate.calibrated_probs(probs, temperature)
+    if not calibrated:
+        return candidates, {}
+    keys = {candidate.email: candidate_keys.get(candidate.email) for candidate in candidates}
+    if any(key is None or key not in calibrated for key in keys.values()):
+        return candidates, {}
+    w = min(1.0, max(0.0, float(weight)))
+    scores: dict[str, tuple[float, float]] = {}
+    for candidate in candidates:
+        laya_prob = float(calibrated[keys[candidate.email]])
+        final = (1.0 - w) * float(candidate.rules_score) + w * laya_prob
+        scores[candidate.email] = (laya_prob, final)
+    ordered = sorted(
+        candidates,
+        key=lambda candidate: (
+            -scores[candidate.email][1],
+            _pattern_index(candidate.pattern),
+            candidate.email,
+        ),
+    )
+    return ordered, scores
+
+
 def _safe_find(
     client: TregClient, tracked: _Tracked, name: str, company: str
 ) -> TregResult:
@@ -288,37 +356,74 @@ def fetch(
     if client is None:
         client = make_client(settings)
     laya_client = _laya_for(laya, settings)
+    active = settings.laya_mode == "active"
+    enabled = (
+        calibrate.enabled_questions(conn)
+        if active and laya_client is not None
+        else set()
+    )
     pending: list[dict] = []
+    asked: list[tuple[dict, LayaAnswer]] = []
     tracked = _Tracked()
     parts = normalize_name(name)
 
+    # --- identity: Q1 is asked before the contact is written so an active
+    # "same person" answer can reuse the existing row ------------------------
     with db.tx(conn):
         company_id = identity.get_or_create_company(conn, company)
         match = identity.resolve_contact(conn, parts, company_id)
-        if match.contact_id is None:
+
+    existing_row: sqlite3.Row | None = None
+    identity_item: dict | None = None
+    merged_by_laya = False
+    if laya_client is not None and match.gray_zone:
+        existing_row, _score = _best_fuzzy_row(conn, parts.name_key, company_id)
+        if existing_row is not None:
+            identity_item = {
+                "question_name": "identity",
+                "question": q_identity(
+                    existing={
+                        "name": existing_row["full_name"],
+                        "company": company,
+                        "email": existing_row["email"] or "",
+                    },
+                    incoming={"name": name, "company": company},
+                ),
+                "rules_answer": "B",
+                "existing_email": existing_row["email"] or "",
+                "applied": 0,
+            }
+            if active and "identity" in enabled:
+                answer = laya_client.ask(identity_item["question"])
+                temperature = _temperature(
+                    conn, "identity", len(identity_item["question"].criteria)
+                )
+                confidence_a = calibrate.calibrated_confidence(
+                    answer.probs, "A", temperature
+                )
+                if (
+                    answer.answer == "A"
+                    and confidence_a is not None
+                    and confidence_a >= IDENTITY_MERGE_MIN_CONF
+                ):
+                    merged_by_laya = True
+                    identity_item["applied"] = 1
+                asked.append((identity_item, answer))
+            else:
+                pending.append(identity_item)
+
+    with db.tx(conn):
+        if merged_by_laya and existing_row is not None:
+            contact_id = int(existing_row["id"])
+            identity.touch_seen(conn, contact_id)
+            identity_method = "laya"
+        elif match.contact_id is None:
             contact_id = identity.create_contact(conn, parts, company_id)
+            identity_method = match.method
         else:
             contact_id = match.contact_id
             identity.touch_seen(conn, contact_id)
-        identity_method = match.method
-        if laya_client is not None and match.gray_zone:
-            existing, score = _best_fuzzy_row(conn, parts.name_key, company_id)
-            if existing is not None:
-                pending.append(
-                    {
-                        "question_name": "identity",
-                        "question": q_identity(
-                            existing={
-                                "name": existing["full_name"],
-                                "company": company,
-                                "email": existing["email"] or "",
-                            },
-                            incoming={"name": name, "company": company},
-                        ),
-                        "rules_answer": "new",
-                        "existing_email": existing["email"] or "",
-                    }
-                )
+            identity_method = match.method
 
     company_row = conn.execute(
         "SELECT * FROM companies WHERE id = ?", (company_id,)
@@ -339,6 +444,7 @@ def fetch(
     alternates: list[str] = []
     stamp_verified = False
     generated: list[patterns.Candidate] = []
+    candidate_scores: dict[str, tuple[float | None, float]] = {}
     verified_candidate: str | None = None
     verified_outcome: str | None = None
 
@@ -382,14 +488,83 @@ def fetch(
                 email_source = "pattern"
                 email_pattern = pattern_name
 
+    # --- Q2 route (active): ask at decision time so the answer can apply -----
+    route_item: dict | None = None
+    force_verify = False
+    skip_r3 = False
+    if (
+        laya_client is not None
+        and active
+        and "route" in enabled
+        and route is None
+        and domain
+    ):
+        best_now = patterns.best_pattern(conn, domain)
+        if best_now is not None:
+            stats_now = patterns.pattern_stats(conn, domain)
+            posterior_now, hits_now = best_now[1], best_now[2]
+            misses_now = int(stats_now.get(best_now[0], {}).get("misses", 0))
+            if (
+                ROUTE_GRAY_MIN_POSTERIOR <= posterior_now < ROUTE_GRAY_MAX_POSTERIOR
+                or hits_now == 1
+            ):
+                rules_verify = (
+                    posterior_now >= settings.verify_min_posterior
+                    and hits_now >= settings.verify_min_hits
+                )
+                company_now = conn.execute(
+                    "SELECT is_catch_all FROM companies WHERE id = ?", (company_id,)
+                ).fetchone()
+                route_item = {
+                    "question_name": "route",
+                    "question": q_route(
+                        domain=domain,
+                        best_pattern=best_now[0],
+                        posterior=posterior_now,
+                        verified_hits=hits_now,
+                        misses=misses_now,
+                        patterns_seen=len(stats_now),
+                        catch_all=bool(company_now and company_now["is_catch_all"]),
+                    ),
+                    "rules_answer": "A" if rules_verify else "B",
+                    "applied": 0,
+                }
+                answer = laya_client.ask(route_item["question"])
+                temperature = _temperature(
+                    conn, "route", len(route_item["question"].criteria)
+                )
+                followed = False
+                if answer.answer == "A":
+                    confidence = calibrate.calibrated_confidence(
+                        answer.probs, "A", temperature
+                    )
+                    followed = (
+                        confidence is not None and confidence >= ROUTE_FOLLOW_MIN_CONF
+                    )
+                elif answer.answer == "B":
+                    confidence = calibrate.calibrated_confidence(
+                        answer.probs, "B", temperature
+                    )
+                    followed = (
+                        confidence is not None and confidence >= ROUTE_FOLLOW_MIN_CONF
+                    )
+                if followed:
+                    decision_verify = answer.answer == "A"
+                    if decision_verify != rules_verify:
+                        route_item["applied"] = 1
+                    force_verify = decision_verify
+                    skip_r3 = not decision_verify
+                asked.append((route_item, answer))
+
     # --- R3 pattern_verify --------------------------------------------------
-    if route is None and domain:
+    if route is None and domain and not skip_r3:
         best = patterns.best_pattern(conn, domain)
-        if (
+        thresholds_met = (
             best is not None
             and best[1] >= settings.verify_min_posterior
             and best[2] >= settings.verify_min_hits
-        ):
+        )
+        if best is not None and (thresholds_met or force_verify):
             attempted: set[str] = set()
             tries = 0
             while tries < int(settings.verify_max_tries):
@@ -415,6 +590,10 @@ def fetch(
                         if other_email != candidate_email:
                             alternatives.append(other_email)
                     rank_candidates = [candidate_email] + alternatives[:11]
+                    candidate_keys = {
+                        candidate: f"c{index + 1}"
+                        for index, candidate in enumerate(rank_candidates)
+                    }
                     pending.append(
                         {
                             "question_name": "rank",
@@ -426,12 +605,10 @@ def fetch(
                                 similar_formats=_similar_formats(conn),
                                 candidate_emails=rank_candidates,
                             ),
-                            "rules_answer": candidate_email,
-                            "candidate_keys": {
-                                candidate: f"c{index + 1}"
-                                for index, candidate in enumerate(rank_candidates)
-                            },
+                            "rules_answer": candidate_keys[candidate_email],
+                            "candidate_keys": candidate_keys,
                             "verified_email": candidate_email,
+                            "applied": 0,
                         }
                     )
                 result = _safe_verify(client, tracked, candidate_email)
@@ -502,7 +679,8 @@ def fetch(
                             treg_email=email,
                             learned_format=email_pattern,
                         ),
-                        "rules_answer": email,
+                        "rules_answer": "A",
+                        "applied": 0,
                     }
                 )
             if result.status == "catch_all":
@@ -540,36 +718,60 @@ def fetch(
                 email = None
                 high_pattern_email = None
             else:
+                rules_top = generated[0]
+                rank_item: dict | None = None
+                if laya_client is not None:
+                    rank_candidates = [candidate.email for candidate in generated]
+                    candidate_keys = {
+                        candidate: f"c{index + 1}"
+                        for index, candidate in enumerate(rank_candidates)
+                    }
+                    rank_item = {
+                        "question_name": "rank",
+                        "question": q_rank(
+                            person=name,
+                            company=company,
+                            domain=domain,
+                            known_formats=_known_formats(conn, domain),
+                            similar_formats=_similar_formats(conn),
+                            candidate_emails=rank_candidates,
+                        ),
+                        "rules_answer": candidate_keys[rules_top.email],
+                        "candidate_keys": candidate_keys,
+                        "verified_email": None,
+                        "applied": 0,
+                    }
+                    if active and "rank" in enabled:
+                        answer = laya_client.ask(rank_item["question"])
+                        temperature = _temperature(conn, "rank", len(rank_candidates))
+                        blended, scores = _blend_rank(
+                            generated,
+                            answer.probs,
+                            candidate_keys,
+                            settings.laya_weight,
+                            temperature,
+                        )
+                        if scores:
+                            generated = blended
+                            candidate_scores = scores
+                            rank_item["applied"] = (
+                                1 if generated[0].email != rules_top.email else 0
+                            )
+                        asked.append((rank_item, answer))
+                    else:
+                        pending.append(rank_item)
+
                 top = generated[0]
                 email = top.email
                 status = "pattern_guess"
                 high_pattern_email = top.email
-                confidence = top.rules_score
+                confidence = candidate_scores.get(top.email, (None, top.rules_score))[1]
                 alternates = [candidate.email for candidate in generated[1:GENERATE_K]]
                 email_source = "pattern"
                 email_pattern = top.pattern
-                if laya_client is not None:
-                    rank_candidates = [candidate.email for candidate in generated]
-                    pending.append(
-                        {
-                            "question_name": "rank",
-                            "question": q_rank(
-                                person=name,
-                                company=company,
-                                domain=domain,
-                                known_formats=_known_formats(conn, domain),
-                                similar_formats=_similar_formats(conn),
-                                candidate_emails=rank_candidates,
-                            ),
-                            "rules_answer": top.email,
-                            "candidate_keys": {
-                                candidate: f"c{index + 1}"
-                                for index, candidate in enumerate(rank_candidates)
-                            },
-                            "verified_email": top.email
-                            if settings.generate_verify_top
-                            else None,
-                        }
+                if rank_item is not None:
+                    rank_item["verified_email"] = (
+                        top.email if settings.generate_verify_top else None
                     )
                 if settings.generate_verify_top:
                     result = _safe_verify(client, tracked, top.email)
@@ -595,14 +797,22 @@ def fetch(
                             )
                         verified_outcome = "invalid"
 
-    # --- Laya Q2: verify-vs-find, only in the routing gray window -----------
-    if laya_client is not None and route in ("pattern_verify", "treg_find") and domain:
+    # --- Laya Q2 (shadow path): verify-vs-find, only in the gray window -----
+    if (
+        laya_client is not None
+        and route_item is None
+        and route in ("pattern_verify", "treg_find")
+        and domain
+    ):
         best_now = patterns.best_pattern(conn, domain)
         if best_now is not None:
             stats_now = patterns.pattern_stats(conn, domain)
             posterior_now, hits_now = best_now[1], best_now[2]
             misses_now = int(stats_now.get(best_now[0], {}).get("misses", 0))
-            if (0.45 <= posterior_now < 0.60) or hits_now == 1:
+            if (
+                ROUTE_GRAY_MIN_POSTERIOR <= posterior_now < ROUTE_GRAY_MAX_POSTERIOR
+                or hits_now == 1
+            ):
                 company_now = conn.execute(
                     "SELECT is_catch_all FROM companies WHERE id = ?", (company_id,)
                 ).fetchone()
@@ -620,12 +830,13 @@ def fetch(
                                 company_now and company_now["is_catch_all"]
                             ),
                         ),
-                        "rules_answer": route,
+                        "rules_answer": "A" if route == "pattern_verify" else "B",
+                        "applied": 0,
                     }
                 )
 
-    # --- Laya (shadow): ask OUTSIDE the write transaction -------------------
-    laya_rows: list[tuple[dict, LayaAnswer]] = []
+    # --- Laya: ask OUTSIDE the write transaction ----------------------------
+    laya_rows: list[tuple[dict, LayaAnswer]] = list(asked)
     for item in pending:
         laya_rows.append((item, laya_client.ask(item["question"])))
 
@@ -709,19 +920,23 @@ def fetch(
             outcome = (
                 verified_outcome if candidate.email == verified_candidate else None
             )
+            laya_prob, final_score = candidate_scores.get(
+                candidate.email, (None, float(candidate.rules_score))
+            )
             conn.execute(
                 """
                 INSERT INTO candidates
                     (lookup_id, email, pattern, rules_score, laya_prob,
                      final_score, rank, outcome)
-                VALUES (?, ?, ?, ?, NULL, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     lookup_id,
                     candidate.email,
                     candidate.pattern,
                     float(candidate.rules_score),
-                    float(candidate.rules_score),
+                    laya_prob,
+                    float(final_score),
                     rank,
                     outcome,
                 ),
@@ -733,7 +948,7 @@ def fetch(
                 INSERT INTO laya_decisions
                     (lookup_id, question, routed_model, answer, confidence,
                      probs_json, rules_answer, applied, truth, latency_ms, error)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     lookup_id,
@@ -743,6 +958,7 @@ def fetch(
                     answer.confidence,
                     json.dumps(answer.probs, ensure_ascii=False),
                     item["rules_answer"],
+                    int(item.get("applied", 0)),
                     _truth_for(item, status, email),
                     answer.latency_ms,
                     answer.error,

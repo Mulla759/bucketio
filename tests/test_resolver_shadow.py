@@ -151,7 +151,7 @@ def test_identity_question_in_gray_zone(conn, client, settings):
 
     rows = _rows(conn, "identity")
     assert len(rows) == 1
-    assert rows[0]["rules_answer"] == "new"
+    assert rows[0]["rules_answer"] == "B"
     assert rows[0]["answer"] == "A"
     assert rows[0]["confidence"] == pytest.approx(0.85)
     # truth = whether the incoming fetch landed on the existing contact's email
@@ -183,7 +183,7 @@ def test_rank_truth_backfilled_from_verify(conn, client, settings):
 
     rank_rows = _rows(conn, "rank")
     assert len(rank_rows) == 1
-    assert rank_rows[0]["rules_answer"] == "mary.jones@acme.com"
+    assert rank_rows[0]["rules_answer"] == "c1"
     assert rank_rows[0]["truth"] == "c1"
 
     route_rows = _rows(conn, "route")

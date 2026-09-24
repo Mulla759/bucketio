@@ -354,3 +354,69 @@ parameter) — the report's agreement metric is ready for it.
 **Next:** Pass 6 — `calibrate.py` (temperature fit + accuracy vs rules per question
 type), `LAYA_MODE=active` gated on `accuracy > rules_acc` and `n_samples >= 50`,
 reversible via `LAYA_MODE=shadow`.
+
+---
+
+## Pass 6 - Calibration and activation (done 2026-09-24)
+
+- `bucketio/calibrate.py` turns the `laya_decisions` audit trail into
+  `laya_calibration`:
+  - `fit_temperatures(conn, *, grid=None)` groups labelled rows by
+    `(question, n_options)` where `n_options` is the number of keys in the
+    stored probability distribution; it grid-searches 0.5-5.0 step 0.05 for the
+    temperature minimising the mean NLL of the **truth** key under
+    `softmax(ln(p)/T)` and upserts one row per group (with `fitted_at`).
+  - `accuracy` = share of usable rows with `answer == truth`; `rules_acc` =
+    share with `rules_answer == truth` over the rows that have a `rules_answer`
+    (NULL when none do, and such a group can never enable).
+  - Rows without truth/answer, with unparseable `probs_json`, or whose truth
+    key is absent from the distribution are skipped and never written.
+  - `calibrated_probs`/`calibrated_confidence` are pure (`softmax(ln p / T)`,
+    max-shifted for stability; argmax preserved; sums to 1).
+  - `format_report(rows)` renders a table for a future `report` wiring
+    (cli.py untouched this pass).
+- `rules_answer` is now always a criteria KEY (Pass 5 stored mixed values):
+  identity "B" (rules never merge), route "A" for `pattern_verify` / "B" for
+  `treg_find`, plausible "A", rank the rules-chosen candidate's key ("c1"...).
+  `tests/test_resolver_shadow.py` assertions updated.
+- `LAYA_MODE=active` is gated per fetch on
+  `calibrate.enabled_questions(conn)`: `n_samples >= 50 AND accuracy >
+  rules_acc` (both non-null). Off, shadow, or an unenabled question type stays
+  exactly as shadow - logged, `applied = 0`.
+- Active behaviour:
+  - Q1 identity: calibrated P("A") >= 0.80 -> reuse the existing fuzzy contact
+    (`touch_seen`, `identity_method = "laya"`, no new row). The ask happens
+    before the contact write.
+  - Q2 route: the ask moves to decision time (before R3) inside the gray
+    window; calibrated "A"/"B" >= 0.75 forces/skips the pattern verify. In
+    shadow the ask stays after routing, unchanged.
+  - Q3 rank (generate only): `final = (1-W)*rules_score + W*calibrated_prob`
+    with `W = LAYA_WEIGHT`, re-rank, blended `laya_prob`/`final_score` written
+    to `candidates`, new top used as email/high_pattern_email/verify target.
+  - Q4 plausible never changes behaviour.
+- `applied` = 1 only when the answer changed something: Q1 merge happened, Q2
+  followed answer changed the verify-vs-find decision, Q3 blend changed the top
+  candidate. It is 0 for every shadow/off row and every logged-but-unenabled
+  question.
+- Laya asks (Q1 at identity, Q2 before R3, Q3 before ranking, Q4 after find)
+  stay outside the write transactions.
+- Tests: `tests/test_calibrate.py` (13) + `tests/test_resolver_active.py` (8)
+  cover the fit direction/accuracy/upsert/skip rules, the enabled gate, the
+  pure functions, rank-only activation, the blend changing the top, <50-sample
+  inertness (byte-identical `to_json` vs shadow), Q1 merge (and below-threshold
+  no-merge), Q2 force/skip, and shadow reversibility. Full suite **196 passed**.
+
+**Deviations / decisions:**
+- `rules_acc` denominator is the rows with a non-null `rules_answer` (NULL when
+  a group has none); the gate requires both accuracy and rules_acc non-null.
+- Active rank blending requires the answer's distribution to cover every
+  candidate key; a partial/empty answer is a no-op (rules scores kept).
+- The generate-route `confidence` becomes the blended `final_score` of the new
+  top (it is the score of the choice); shadow is unchanged.
+- Q2 `applied` compares the followed decision with the rules decision at ask
+  time (a forced verify that later falls through to find still counts as
+  applied, because the routing path changed).
+- Active Q2 still logs the post-routing ask when the pre-R3 gray window did not
+  hold (the answer cannot change the route then, so `applied = 0`).
+
+**Next:** Pass 7 - hardening (concurrency, idempotency, unmerge, backup).
