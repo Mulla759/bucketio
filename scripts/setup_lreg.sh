@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env sh
+#!/usr/bin/env sh
 # Lreg setup (macOS / Linux) - Laya + treg + BucketIO in one command.
 #
 #   ./scripts/setup_lreg.sh              # full setup, then serve the web UI
@@ -39,10 +39,22 @@ if [ ! -f .env ]; then
   cp .env.example .env
   info "created .env from .env.example"
 fi
+
+# shared secret for the local sidecar: reuse env/.env, else generate a random one
+LAYA_KEY="${LAYA_API_KEY:-}"
+if [ -z "$LAYA_KEY" ] || [ "$LAYA_KEY" = "change-me" ]; then
+  LAYA_KEY="$(grep '^LAYA_API_KEY=' .env 2>/dev/null | head -1 | cut -d= -f2- || true)"
+fi
+if [ -z "$LAYA_KEY" ] || [ "$LAYA_KEY" = "change-me" ]; then
+  LAYA_KEY="$(openssl rand -hex 16 2>/dev/null || od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+  info "generated a random LAYA_API_KEY for the local sidecar"
+fi
+
 if [ "$SKIP_LAYA" -eq 0 ]; then
   sed -i.bak -e "s|^LAYA_MODE=.*|LAYA_MODE=shadow|" \
              -e "s|^LAYA_URL=.*|LAYA_URL=http://127.0.0.1:${LAYA_PORT}|" \
-             -e "s|^LAYA_TIMEOUT_S=.*|LAYA_TIMEOUT_S=4.0|" .env && rm -f .env.bak
+             -e "s|^LAYA_TIMEOUT_S=.*|LAYA_TIMEOUT_S=4.0|" \
+             -e "s|^LAYA_API_KEY=.*|LAYA_API_KEY=${LAYA_KEY}|" .env && rm -f .env.bak
 fi
 grep -q '^TREG_MODE=' .env || printf 'TREG_MODE=http\n' >> .env
 
@@ -70,7 +82,7 @@ fi
 
 mkdir -p .lreg/logs
 export USE_TF=0 LAYA_HOST=127.0.0.1 LAYA_PORT="$LAYA_PORT" LAYA_PRELOAD=1 LAYA_DEVICE=cpu
-export LAYA_API_KEY="${LAYA_API_KEY:-change-me}"
+export LAYA_API_KEY="$LAYA_KEY"
 info "starting Laya sidecar on 127.0.0.1:${LAYA_PORT} (weights download on first run)"
 nohup .laya-venv/bin/laya-serve > .lreg/logs/laya.out.log 2> .lreg/logs/laya.err.log &
 echo $! > .lreg/laya.pid

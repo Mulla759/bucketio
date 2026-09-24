@@ -1,4 +1,4 @@
-﻿# Lreg setup (Windows) - Laya + treg + BucketIO in one command.
+# Lreg setup (Windows) - Laya + treg + BucketIO in one command.
 #
 #   .\scripts\setup_lreg.ps1              # full setup, then serve the web UI
 #   .\scripts\setup_lreg.ps1 -NoStart     # set everything up, do not start anything
@@ -37,11 +37,24 @@ if (-not (Test-Path ".env")) {
     Info "created .env from .env.example (TREG_MODE=mock, LAYA_MODE=off -> will be set below)"
 }
 $envText = Get-Content ".env" -Raw
+
+# shared secret for the local sidecar: reuse env/.env, else generate a random one
+$LayaKey = $env:LAYA_API_KEY
+if (-not $LayaKey) {
+    $existing = Select-String -Path ".env" -Pattern '^LAYA_API_KEY=(.+)$' -ErrorAction SilentlyContinue
+    if ($existing) { $LayaKey = $existing.Matches[0].Groups[1].Value.Trim() }
+}
+if (-not $LayaKey -or $LayaKey -eq "change-me") {
+    $LayaKey = -join ((48..57) + (97..102) | Get-Random -Count 32 | ForEach-Object { [char]$_ })
+    Info "generated a random LAYA_API_KEY for the local sidecar"
+}
+
 if (-not $SkipLaya) {
     $envText = $envText -replace "(?m)^LAYA_MODE=.*$", "LAYA_MODE=shadow"
     $envText = $envText -replace "(?m)^LAYA_URL=.*$", "LAYA_URL=http://127.0.0.1:$LayaPort"
     $envText = $envText -replace "(?m)^LAYA_TIMEOUT_S=.*$", "LAYA_TIMEOUT_S=4.0"
-    $envText | Set-Content -Encoding utf8 ".env"
+    $envText = $envText -replace "(?m)^LAYA_API_KEY=.*$", "LAYA_API_KEY=$LayaKey"
+    Set-Content -Encoding ASCII ".env" -Value $envText
 }
 if (-not (Select-String -Path ".env" -Pattern "^TREG_MODE=" -Quiet)) {
     Add-Content ".env" "TREG_MODE=http"
@@ -73,7 +86,7 @@ if ($SkipLaya -or $NoStart) {
 }
 
 New-Item -ItemType Directory -Force -Path ".lreg\logs" | Out-Null
-$env:LAYA_API_KEY = if ($env:LAYA_API_KEY) { $env:LAYA_API_KEY } else { "change-me" }
+$env:LAYA_API_KEY = $LayaKey
 Info "starting Laya sidecar on 127.0.0.1:$LayaPort (weights download on first run)"
 $p = Start-Process -FilePath "$root\.laya-venv\Scripts\laya-serve.exe" `
     -WorkingDirectory $root `

@@ -1,4 +1,4 @@
-﻿# Lreg = Laya + treg + BucketIO. One file that describes the whole stack.
+# Lreg = Laya + treg + BucketIO. One file that describes the whole stack.
 # `scripts/setup_lreg.ps1` (Windows) / `scripts/setup_lreg.sh` (macOS/Linux) read this;
 # `bucketio lreg status` reports on it at runtime.
 version: 1
