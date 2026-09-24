@@ -462,19 +462,172 @@ lookups (token already in `~/.treg/config.json`), run ~50 fetches in shadow, the
 
 ---
 
-## Post-v1 � security sweep, README, CI (done 2026-09-24)
+## Post-v1 — security sweep, README, CI (done 2026-09-24)
 
 - **Sweep:** no tokens, keys, personal paths or machine names anywhere in the tracked tree;
   `.env`, `.lreg/`, `.laya-venv/` stay ignored. `subprocess` in the treg CLI adapter uses an
   argument list, a timeout and no `shell=True`; the web UI uses `textContent` only.
 - **Fixed:** UTF-8 BOMs (PowerShell `Set-Content -Encoding utf8`) on `.env.example`,
-  `lreg.yaml` and both setup scripts � a BOM breaks `.env` parsing and `sh` shebangs.
-- **Fixed:** `PROGRESS.md` mojibake (UTF-8 bytes read as cp1252) � 42 damaged lines repaired.
+  `lreg.yaml` and both setup scripts — a BOM breaks `.env` parsing and `sh` shebangs.
+- **Fixed:** `PROGRESS.md` mojibake (UTF-8 bytes read as cp1252) — 42 damaged lines repaired.
 - **Hardened:** `setup_lreg.*` now generates a random 32-hex `LAYA_API_KEY`, writes it to
   `.env` and passes the same key to the sidecar (the old `change-me` placeholder is gone).
 - **README:** rewritten with mermaid architecture / routing / sequence diagrams, a
   configuration reference, security posture, development/CI and troubleshooting sections.
-- **CI:** `.github/workflows/ci.yml` � pytest on Python 3.11 and 3.13 (verified locally:
+- **CI:** `.github/workflows/ci.yml` — pytest on Python 3.11 and 3.13 (verified locally:
   201 pass on 3.11.15 and 3.13) plus an offline CLI smoke test (`init` -> mock `fetch`).
   Tests only, read-only token, no secrets, `fail-fast: false`.
 - **LICENSE:** MIT (matches `pyproject.toml`).
+
+---
+
+## Frontend — the BucketIO Directory (Vite + React)
+
+- `frontend/` ports the design handoff (`design/BucketIO Directory v3.dc.html`,
+  `design/README.md`) to Vite 8 + React 19 + TypeScript: one component per section
+  (`Cover`, `Features`, `WhitePages`, `YellowPages`, `DirectoryAssistance`, `Docs`,
+  `Setup`, `Contact`, `Header`/`Logo`/`Coupon`), plus
+  - `lib/motion.ts` — Lenis 0.08 wired to ScrollTrigger as the handoff prescribes,
+    reveals/marquees/header/section tracking, Vanta (fog/net/waves/clouds) lazy-loaded
+    by IntersectionObserver, all opt-out under `prefers-reduced-motion`;
+  - `lib/api.ts` — same-origin fetch (Vite dev proxies `/api` + `/health` to
+    127.0.0.1:8080), 2.5 s health probe so the offline demo starts fast;
+  - `lib/directory.ts` — the handoff's lookup simulation, kept as the offline fallback;
+  - `lib/ticket.ts` — a live `/api/fetch` result mapped onto the same toll-ticket view
+    model the simulation renders.
+- `npm run build` writes `bucketio/web` (`emptyOutDir`), so `bucketio serve` mounts the
+  built site unchanged: `index.html` + `assets/` (hashed JS/CSS, self-hosted fonts,
+  code-split Vanta + three chunks). The old hand-written `web/app.js` + `web/style.css`
+  are gone.
+- New endpoint `GET /api/companies` (the yellow pages): name, domain, best learned
+  pattern + Beta posterior as `confidence`, `seen` (non-merged contacts),
+  `is_catch_all`, `q` search over name/domain, `limit`/`offset`.
+  `test_companies_lists_learned_formats` pins it; `test_static_index_and_built_assets`
+  now parses the built index for the hashed bundle and stylesheet instead of requesting
+  `/app.js` + `/style.css`. Suite **202 passed**.
+- Fixed: the CSV import toast read `result.imported`, but `/api/import` returns
+  `{rows, created, updated, errors}`; it now reports new/updated/skipped rows and
+  `ImportResult` is typed in `lib/types.ts`.
+- Fixed: `PROGRESS.md` still held 5 damaged bytes from the cp1252 mojibake (four `0x97`,
+  one `C3 E2 80 94` for "×"); every tracked file is now valid UTF-8 with no BOM.
+- `.gitignore` covers `frontend/node_modules/` (102 MB) and `frontend/dist/`.
+- The design's Shadow/Active switch stays a demo control: it changes the ticket label and
+  the simulation; the live server mode is read from `/health` and shown separately
+  ("Server is running Laya shadow."). Changing it for real is still an `.env` edit.
+- Not ported from the handoff: the two airbrush Fig. 01/02 plates (the uploads are mood
+  references, not artwork) and its `image-slot` web component. The print stylesheet and
+  reduced-motion branches are in (`styles/base.css`, `lib/motion.ts`).
+
+**Verified:** `npm run typecheck` clean, `npm run build` clean, `uv run pytest -q`
+202 passed, and `bucketio serve` serves the built page + `/api/companies` on
+127.0.0.1:8080.
+
+**Next:** optional — `frontend/` in CI (typecheck + build), the Fig. 01/02 art, and
+re-checking the Treg rates/date in the Rates footnote before launch.
+
+---
+
+## Frontend polish — coupon, cover scale, long-value safety
+
+- **Fixed the wonky tear-off coupon:** `styles/coupon.css` was never imported, so the
+  strip rendered unstyled (no yellow stock, no dashed border, the stub and body ran
+  together). `Coupon.tsx` now imports it; the strip, notches, stub and tear animation
+  all render, in the hero and on the Setup page.
+- **Cover zoom + shadows:** `.book` grows (clamp ceiling 560 → 640px, `46vw` cap,
+  `100vh − 252px` reserve, board padding trimmed to `28px 16px 196px`) and gains a
+  soft cast shadow (`box-shadow` on the front/back faces so it rotates with the cover,
+  plus a `.book::after` shadow plane at `translateZ(-3px)`); media queries rebalanced
+  for ≤819px and ≤640px heights.
+- **Long-value safety** (found by stress-testing the live app with 1000-char company
+  names and `<script>` payloads): `overflow-wrap: anywhere` on the white-pages listing
+  and yellow-pages card name/address, and the white-pages guide words are clipped to
+  24 chars. No section overflows the viewport at 1440×900 or 390×844 (CDP probe).
+- Verified with headless-Chrome screenshots: hero (closed cover + coupon), the torn
+  "Coupon kept" state, Setup, White Pages, and mobile 390×844.
+  `npm run typecheck` clean, `npm run build` clean, `uv run pytest -q` 202 passed.
+
+---
+
+## Frontend polish 2 — click-to-open, the publisher's portrait
+
+- **Click the cover to open it:** the closed cover is a real control
+  (`role="button"`, `tabIndex=0`, Enter/Space, `aria-label="Open the cover"`); clicking
+  scrolls the hero to the point where the scrub finishes the turn (84% of the hero's
+  scroll range, new `scrollToY` in `lib/motion.ts`), so the 3D open still plays as the
+  page moves. A second click past that point carries on to the next section. The hint
+  now reads "Click the cover or scroll ↓". Page 1's own buttons are untouched (the
+  handler sits on the cover face, which is invisible when open).
+- **The publisher's portrait** was rendering the whole snapshot in `grayscale(1)`
+  with a 1.5px border — flat and unlike the handoff. It is now the colour photo,
+  cropped in a 150×188 frame (`object`-style cover via an overflow-hidden frame and a
+  180×226 image at −5px/−15px) so head and shoulders fill the plate the way the
+  design's image slot framed it.
+- Checked the Gravatar profile the back cover links to
+  (`api.gravatar.com/v3/profiles/tremendousdelectablye2bab3e728`): it resolves, the
+  avatar is the same photo at 512×512, and the verified accounts (GitHub, LinkedIn, X)
+  match the site's links.
+- Verified with screenshots: the cover mid-open (inside front cover + Page 1), the
+  back cover portrait, and 1440×900/390×844 overflow probes. `npm run typecheck`
+  clean, `npm run build` clean, `uv run pytest -q` 202 passed.
+
+---
+
+## Frontend polish 3 — the whole site as a book
+
+- **Every page after the cover now turns like a sheet:** `usePageTurns()` in
+  `lib/motion.ts` gives each `[data-after-hero] > section` one scrubbed ScrollTrigger
+  (`top bottom` → `top 12%`, `scrub: 0.6`) that animates it from
+  `scale .92 / rotateX 7° / perspective 1600px` (origin bottom) to flat, full size.
+  So as you scroll, the next page comes in smaller and tilted back on the mat board
+  and zooms into place — the handoff's "tall section, sticky stage, scrub" idea
+  applied to the whole directory. Transform-only, `invalidateOnRefresh`, killed and
+  cleared on unmount, and skipped entirely under `prefers-reduced-motion`.
+- Nothing inside the sections uses `position: sticky/fixed`, so the section transform
+  is safe; measured with CDP: settled sections report `scale: 1` and an identity
+  matrix, entering ones 0.92–0.98 with the rotateX term.
+- Verified with screenshots at 1440×900: the cover → Set up handoff (page rising on
+  the mat), Features mid-entry, and a settled page. `npm run typecheck` clean,
+  `npm run build` clean, `uv run pytest -q` 202 passed.
+
+---
+
+## Frontend polish 4 — the back cover as an editorial spread
+
+- `Contact.tsx` + `contact.css` rebuilt from the supplied editorial layout, mapped onto
+  the handoff's tokens (`--ct-ink`/`--ct-muted`/`--ct-rule`/`--ct-hair` →
+  `--ink`/`--ink-3`/`--ink`/`--rule-hair`; the clipping stock stays the one literal
+  newsprint `#ece5d5`, a step darker than the frame's `--paper-bright`):
+  - a 12-column `.ct-grid` with a `--ct-s1…s4` vertical rhythm,
+  - masthead (kicker → "Built by Abdullahi Abdi" → lead),
+  - the publisher's photograph as a **newspaper clipping**: newsprint scrap with a
+    torn `clip-path` edge, a strip of tape, a −1.1° rotation, `drop-shadow`, and a
+    halftone treatment (`grayscale(1) contrast(1.35)` + `multiply` + a 4px dot
+    screen) — the print screen also hides the 300px source being enlarged,
+  - a bottom-aligned bio beside it, the "Write to the desk" enquiry block, the dense
+    "Listings · elsewhere" table (label / sub / host / ↗, host hidden under 600px) and
+    the colophon.
+- The section keeps `sheet contact`, the `pagehead`, `data-reveal` hooks (GSAP reveals
+  and the page-turn transform), `Logo`, `copyText` and the `online` footer note.
+- Verified with screenshots at 1440×900 (masthead, clipping + bio, enquiry + listings,
+  colophon) and 390×844; no horizontal overflow at either width. `npm run typecheck`
+  clean, `npm run build` clean, `uv run pytest -q` 202 passed.
+
+---
+
+## Frontend polish 5 — logo assets and favicon
+
+- `frontend/public/` (new; Vite copies it to the build root, so `bucketio serve` serves
+  it unchanged): `favicon.svg` (the `BucketMark` from `Logo.tsx`, byte-identical
+  geometry, on a paper-bright tile with the ribs cut out — no rounded corners, no
+  shadow), its PNG exports `favicon-32.png` and `apple-touch-icon.png` (180, opaque,
+  full-bleed), and `logo.svg` (the full lockup: mark + Montagu Slab "BUCKET.IO" with
+  the vermilion period + Space Mono "DIRECTORY", both woff2 faces base64-embedded so
+  the file is self-contained) plus `logo-lockup-1024.png` (transparent).
+- `frontend/index.html` gained the three `<link rel="icon">` / `apple-touch-icon` tags.
+- Verified: `npm run typecheck` / `npm run build` clean, every asset copied
+  byte-identical into `bucketio/web/`, `GET /favicon.svg` → 200 `image/svg+xml`, both
+  PNGs → 200 `image/png`, `GET /` still 200, `uv run pytest -q` 202 passed.
+- Note: `logo.svg` is ~134 KB because both fonts are embedded unmodified; subsetting
+  with fonttools would bring it to ~10 KB if that ever matters. The lockup is an
+  ink-on-paper asset (the ribs are paper-bright, not transparent), so it is meant for
+  light surfaces.
