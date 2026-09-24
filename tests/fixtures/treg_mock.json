@@ -1,0 +1,12 @@
+{
+  "company_domains": {"acme": "acme.com", "globex": "globex.io", "initech": "initech.com", "umbrella": "umbrella.com", "ghost": "ghost.co"},
+  "domains": {
+    "acme.com":    {"pattern": "first.last", "catch_all": false,
+                    "people": {"jane doe": "jane.doe", "john smith": "john.smith", "mary jones": "mary.jones", "anna ivanova": "anna.ivanova"},
+                    "known_valid": ["jane.doe", "john.smith", "mary.jones", "anna.ivanova"]},
+    "globex.io":   {"pattern": "flast", "catch_all": false, "people": {"jane doe": "jdoe", "sam smith": "ssmith"}, "known_valid": ["jdoe", "ssmith"]},
+    "initech.com": {"pattern": "first.last", "catch_all": true, "people": {"peter gibbons": "peter.gibbons", "milton waddams": "milton.waddams"}},
+    "umbrella.com":{"pattern": "flast", "catch_all": false, "people": {"zed zulu": "zzulu"}, "known_valid": ["zzulu"]},
+    "ghost.co":    {"pattern": null, "not_found": true, "people": {}}
+  }
+}
