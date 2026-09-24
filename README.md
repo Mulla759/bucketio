@@ -17,6 +17,25 @@ only when `bucketio calibrate` shows it beats the rules.
 Full build plan and rationale: [`bucketio.md`](bucketio.md).
 Stack guide (Laya + treg + BucketIO): [`docs/LREG.md`](docs/LREG.md).
 
+## How it saves money
+
+Every fetch takes the first route that applies, and the route decides the cost:
+
+| Route | When | Treg calls | Cost |
+|---|---|---|---|
+| `cache_hit` | known contact, verified within `CACHE_TTL_DAYS` (90) | 0 | $0 |
+| `catch_all` | domain is catch-all and a pattern is learned | 0 | $0 |
+| `pattern_verify` | domain pattern known (posterior ≥ 0.60, ≥ 2 verified hits) | 1 verify | ~$0.0015 |
+| `treg_find` | nothing known yet | 1 find | $0.0048–$0.15 |
+| `generate` | find missed; rank patterns by learned posterior | 0–1 verify | $0–$0.0015 |
+
+A `treg_find` teaches the domain's format (`jane.doe@acme.com` → `first.last`), so the
+**next** person at that company is a `pattern_verify`. Measured on the live end-to-end run:
+6 fetches, 4 finds, 2 verifies → **$0.0115 saved** against an all-find baseline.
+
+Every outcome (valid or invalid) updates a per-domain Beta posterior, so a wrong guess is
+avoided next time. Catch-all domains are marked once and never spend a verify again.
+
 ## Quick start (offline, no keys)
 
 ```powershell
