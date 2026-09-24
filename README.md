@@ -1,7 +1,11 @@
 # BucketIO
 
+[![CI](https://github.com/Mulla759/bucketio/actions/workflows/ci.yml/badge.svg)](https://github.com/Mulla759/bucketio/actions/workflows/ci.yml)
+[![tests](https://img.shields.io/badge/tests-201%20passing-brightgreen)](#development)
+[![python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](#requirements)
+
 A local, self-hosted contact store (SQLite) that sits **in front of [Treg](https://treg.to)**.
-It answers "what is this person's work email?" while spending as little as possible:
+It answers *"what is this person's work email?"* while spending as little as possible:
 
 1. Known + recently verified contact → return it, **$0**.
 2. Company email format known → build the address and ask Treg to **verify** (~$0.0015).
@@ -10,31 +14,101 @@ It answers "what is this person's work email?" while spending as little as possi
 4. Nothing found → return the highest-probability generated address with a confidence.
 
 [Laya](https://huggingface.co/convaiinnovations/laya) runs as a **local sidecar** and acts as a
-scorer / tie-breaker in the gray zones — never as a generator, and never trusted blindly:
-it starts in `shadow` (asked and logged, zero influence) and is switched on per question type
-only when `bucketio calibrate` shows it beats the rules.
+scorer / tie-breaker in the gray zones — never as a generator, and never trusted blindly: it
+starts in `shadow` (asked and logged, zero influence) and is switched on per question type only
+when `bucketio calibrate` shows it beats the rules.
 
-Full build plan and rationale: [`bucketio.md`](bucketio.md).
-Stack guide (Laya + treg + BucketIO): [`docs/LREG.md`](docs/LREG.md).
+| | |
+|---|---|
+| **Status** | v1 complete — 201 tests, live-verified end to end |
+| **Build plan** | [`bucketio.md`](bucketio.md) |
+| **Stack guide** | [`docs/LREG.md`](docs/LREG.md) |
+| **Pass log** | [`PROGRESS.md`](PROGRESS.md) |
 
-## How it saves money
+## Contents
 
-Every fetch takes the first route that applies, and the route decides the cost:
+- [Architecture](#architecture) · [The routing pipeline](#the-routing-pipeline) · [A cheap lookup, step by step](#a-cheap-lookup-step-by-step)
+- [Requirements](#requirements) · [Quick start (offline)](#quick-start-offline-no-keys) · [Quick start (Lreg bundle)](#quick-start-the-lreg-bundle)
+- [Configuration](#configuration) · [Laya: shadow first, active when measured](#laya-shadow-first-active-when-measured)
+- [Treg calls and prices](#treg-calls-and-prices) · [Operations](#operations) · [Results](#results-live-end-to-end)
+- [Security and privacy](#security-and-privacy) · [Development](#development) · [Layout](#layout) · [Troubleshooting](#troubleshooting) · [License](#license)
+
+## Architecture
+
+```mermaid
+flowchart LR
+    CLI["bucketio CLI"] --> RES
+    WEB["Web UI + JSON API<br/>127.0.0.1:8080"] --> RES
+    RES["Resolver<br/>R1 → R5"] --> DB[("SQLite<br/>WAL")]
+    RES -->|"find / verify (paid)"| TREG["treg<br/>treg.to"]
+    RES -->|"Q1–Q4 (local, free)"| LAYA["Laya sidecar<br/>127.0.0.1:8001"]
+    DB -.->|"learned patterns<br/>+ audit trail"| RES
+```
+
+Both entry points call the same `resolver.fetch()`; the CLI opens the DB directly and does not
+need the web server. Laya is reached over HTTP so the model stays warm across CLI invocations.
+
+## The routing pipeline
+
+Every fetch takes the **first** route that applies, and the route decides the cost:
+
+```mermaid
+flowchart TD
+    A["fetch(name, company)"] --> B["normalize + identity<br/>exact match, then fuzzy"]
+    B --> C{"cached and verified<br/>within CACHE_TTL_DAYS?"}
+    C -->|yes| R1["R1 cache_hit — $0"]
+    C -->|no| D{"catch-all domain<br/>with a learned pattern?"}
+    D -->|yes| R2["R2 catch_all — $0"]
+    D -->|no| E{"pattern posterior ≥ 0.60<br/>and ≥ 2 verified hits?"}
+    E -->|yes| R3["R3 pattern_verify — 1 verify"]
+    E -->|no| F["R4 treg_find — 1 find"]
+    F -->|hit| G["learn the domain pattern<br/>(reverse-match the email)"]
+    F -->|miss| H["R5 generate<br/>rank patterns, top = high-pattern email"]
+    R3 -->|valid| DONE["store · learn · audit"]
+    R3 -->|invalid| F
+    G --> DONE
+    H --> DONE
+    R1 --> DONE
+    R2 --> DONE
+```
 
 | Route | When | Treg calls | Cost |
 |---|---|---|---|
-| `cache_hit` | known contact, verified within `CACHE_TTL_DAYS` (90) | 0 | $0 |
+| `cache_hit` | known contact, verified within the TTL (90 d) | 0 | $0 |
 | `catch_all` | domain is catch-all and a pattern is learned | 0 | $0 |
-| `pattern_verify` | domain pattern known (posterior ≥ 0.60, ≥ 2 verified hits) | 1 verify | ~$0.0015 |
+| `pattern_verify` | pattern known (posterior ≥ 0.60, ≥ 2 verified hits) | 1 verify | ~$0.0015 |
 | `treg_find` | nothing known yet | 1 find | $0.0048–$0.15 |
-| `generate` | find missed; rank patterns by learned posterior | 0–1 verify | $0–$0.0015 |
+| `generate` | find missed; rank by learned posterior | 0–1 verify | $0–$0.0015 |
 
-A `treg_find` teaches the domain's format (`jane.doe@acme.com` → `first.last`), so the
-**next** person at that company is a `pattern_verify`. Measured on the live end-to-end run:
-6 fetches, 4 finds, 2 verifies → **$0.0115 saved** against an all-find baseline.
-
-Every outcome (valid or invalid) updates a per-domain Beta posterior, so a wrong guess is
+Every outcome (valid **or** invalid) updates a per-domain Beta posterior, so a wrong guess is
 avoided next time. Catch-all domains are marked once and never spend a verify again.
+
+## A cheap lookup, step by step
+
+```mermaid
+sequenceDiagram
+    participant U as CLI / API
+    participant R as Resolver
+    participant D as SQLite
+    participant T as treg
+    U->>R: fetch("Mary Jones", "Acme Inc")
+    R->>D: identity match + best pattern
+    D-->>R: first.last, 2 verified hits, posterior 0.70
+    R->>T: verify mary.jones@acme.com
+    T-->>R: valid ($0.0015)
+    R->>D: record hit · cache email (TTL) · write audit row
+    R-->>U: route=pattern_verify · find=0 · verify=1
+```
+
+The first two people at `acme.com` cost a find each (`treg_find`) — that is what *teaches*
+`first.last`. Mary is the third, and she costs a verify instead of a find.
+
+## Requirements
+
+- Python **3.11–3.13** (Laya supports 3.10–3.13; `.python-version` pins 3.13)
+- [`uv`](https://docs.astral.sh/uv/) for the environments
+- Optional: a [treg](https://treg.to) token for real lookups (`TREG_MODE=http`)
+- Optional: ~1.5 GB of disk + a CPU for the Laya sidecar (`LAYA_MODE=shadow|active`)
 
 ## Quick start (offline, no keys)
 
@@ -42,7 +116,7 @@ avoided next time. Catch-all domains are marked once and never spend a verify ag
 uv sync --extra dev
 uv run bucketio init
 uv run bucketio fetch "Jane Doe" "Acme Inc" --json   # TREG_MODE=mock by default
-uv run pytest -q                                     # 201 tests
+uv run pytest -q                                     # 201 tests, no network
 ```
 
 ## Quick start (the Lreg bundle)
@@ -51,8 +125,9 @@ uv run pytest -q                                     # 201 tests
 .\scripts\setup_lreg.ps1     # macOS/Linux: ./scripts/setup_lreg.sh
 ```
 
-Installs the app + `laya[serve]` (separate venv), creates `.env`, applies the schema, starts
-the Laya sidecar on `127.0.0.1:8001` and the web UI on `http://127.0.0.1:8080`.
+Installs the app + `laya[serve]` (in a separate `.laya-venv`), creates `.env` with a **random
+`LAYA_API_KEY`**, applies the schema, starts the Laya sidecar on `127.0.0.1:8001` and the web UI
+on `http://127.0.0.1:8080`. Flags: `-SkipLaya` (BucketIO only), `-NoStart` (set up, start nothing).
 
 ```powershell
 uv run bucketio lreg status      # what is up / what is configured
@@ -60,15 +135,29 @@ uv run bucketio report --since 7d
 uv run bucketio calibrate
 ```
 
-## Treg calls (live, 2026-09-24)
+## Configuration
 
-| Job | Endpoint | Price |
+Copy `.env.example` to `.env` (the setup script does it). Safe defaults: `TREG_MODE=mock` and
+`LAYA_MODE=off` run fully offline.
+
+| Variable | Default | Meaning |
 |---|---|---|
-| Find a work email | `treg.people.email.find` (routed, 22 providers) | from $0.004834/hit |
-| Verify an email | `treg.people.email.verify` (routed, 11 providers) | $0 (ContactOut) → $0.0138 |
-
-`TREG_MODE=http` uses the token from `TREG_TOKEN` or, if blank, from `~/.treg/config.json`
-(written by `treg login`). Verify is 3–60× cheaper than find, which is the whole point.
+| `DB_PATH` | `./bucketio.db` | SQLite file (WAL) |
+| `TREG_MODE` | `mock` | `mock` \| `http` \| `cli` |
+| `TREG_BASE_URL` | `https://treg.to` | treg gateway |
+| `TREG_TOKEN` | *(blank)* | falls back to `~/.treg/config.json` when blank |
+| `TREG_ORG` | *(blank)* | only for identity tokens |
+| `TREG_FIND_COST` / `TREG_VERIFY_COST` | `0.004834` / `0.0015` | used for the cost report |
+| `LAYA_MODE` | `off` | `off` \| `shadow` \| `active` |
+| `LAYA_TRANSPORT` | `http` | `http` \| `inprocess` |
+| `LAYA_URL` | `http://127.0.0.1:8001` | sidecar address |
+| `LAYA_API_KEY` | *(generated)* | shared secret for the sidecar |
+| `LAYA_TIMEOUT_S` | `4.0` | measured CPU latency is 0.7–2.0 s |
+| `LAYA_WEIGHT` | `0.3` | blend weight when `rank` is active |
+| `CACHE_TTL_DAYS` | `90` | `cache_hit` freshness |
+| `VERIFY_MIN_POSTERIOR` / `VERIFY_MIN_HITS` | `0.60` / `2` | `pattern_verify` gate |
+| `VERIFY_MAX_TRIES` | `2` | verifies per lookup before falling back to find |
+| `GENERATE_VERIFY_TOP` | `1` | verify the top generated candidate |
 
 ## Laya: shadow first, active when measured
 
@@ -83,14 +172,25 @@ learned patterns and asks Laya up to four choice questions per fetch:
 | Q4 plausible | every `treg_find` hit | logged only (conflict audit) |
 
 Modes: `off` → `shadow` (asked and logged, **zero** influence — a golden test asserts
-byte-identical outputs to `off`) → `active`. Activation is per question type and
-data-driven: `bucketio calibrate` fits one temperature per (question, option count) and
-enables a type only when `accuracy > rules_accuracy` with `n_samples ≥ 50`. Flip back to
-`shadow` at any time.
+byte-identical outputs to `off`) → `active`. Activation is per question type and data-driven:
+`bucketio calibrate` fits one temperature per (question, option count) and enables a type only
+when `accuracy > rules_accuracy` with `n_samples ≥ 50`. Flip back to `shadow` at any time.
 
-Measured on this machine (CPU, `LAYA_PRELOAD=1`): ~0.7–1.0 s for a `route` question and
-~1.3–2.0 s for a `rank` question with 12 candidates — hence `LAYA_TIMEOUT_S=4.0`. A Laya
-timeout or error is recorded and never blocks a fetch.
+Measured on CPU with `LAYA_PRELOAD=1`: ~0.7–1.0 s for a `route` question and ~1.3–2.0 s for a
+`rank` question with 12 candidates — hence `LAYA_TIMEOUT_S=4.0`. A timeout or error is recorded
+and never blocks a fetch.
+
+## Treg calls and prices
+
+Live, checked 2026-09-24 (routed endpoints; you pay the child that serves, 0% markup):
+
+| Job | Endpoint | Price |
+|---|---|---|
+| Find a work email | `treg.people.email.find` (22 providers) | from **$0.004834**/hit |
+| Verify an email | `treg.people.email.verify` (11 providers) | **$0** (ContactOut) → $0.0138 |
+
+Verify is 3–60× cheaper than find, which is the whole point. `TREG_MODE=http` uses the token from
+`TREG_TOKEN` or, if blank, from `~/.treg/config.json` (written by `treg login`).
 
 ## Operations
 
@@ -102,8 +202,8 @@ uv run bucketio unmerge 412        # undo a soft merge
 .\scripts\backup.ps1               # online SQLite backup -> backups/
 ```
 
-`do_not_contact = 1` contacts are never exported (CSV or `/api/export`). Concurrent
-identical fetches are serialised per identity, so a duplicate in flight costs nothing extra.
+`do_not_contact = 1` contacts are never exported (CSV or `/api/export`). Concurrent identical
+fetches are serialised per identity, so a duplicate in flight costs nothing extra.
 
 ## Results (live end-to-end: mock Treg + real Laya sidecar, `shadow`)
 
@@ -119,6 +219,29 @@ identical fetches are serialised per identity, so a duplicate in flight costs no
 Report: `find=4 verify=2 cost=$0.0175 est_saved=$0.0115`; Laya answered all 6 questions
 (`routed_model: english`, `applied: 0`) with truth backfilled; calibration fitted 1 row and
 correctly enabled nothing (< 50 samples).
+
+## Security and privacy
+
+- **Secrets never live in the repo.** `.env` is git-ignored; the DB stores no credentials.
+  The treg token is read from `TREG_TOKEN` or the treg CLI's own config file.
+- **The Laya sidecar is local-only.** Setup binds `127.0.0.1`, requires `LAYA_API_KEY`, and
+  generates a random key instead of the placeholder. Change it for anything shared.
+- **No shell interpolation.** The treg CLI adapter uses `subprocess.run([...])` with an argument
+  list, a timeout and no `shell=True`; the web UI renders with `textContent`, never `innerHTML`.
+- **Compliance is yours.** BucketIO stores business contact data only; you are responsible for
+  CAN-SPAM/GDPR use of the output. `do_not_contact` rows are excluded from every export.
+
+## Development
+
+```powershell
+uv sync --extra dev
+uv run pytest -q          # 201 tests, no network, no keys
+uv run bucketio --help
+```
+
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs the suite on Python 3.11 and
+3.13 plus an offline CLI smoke test (`init` → `fetch` against the mock). It is intentionally
+light: tests only, no deploy, no secrets, so it cannot block work for environmental reasons.
 
 ## Layout
 
@@ -141,3 +264,18 @@ bucketio/
 scripts/              # setup_lreg.*, run_laya.*, backup.*
 tests/                # 201 tests; fixtures/treg_mock.json
 ```
+
+## Troubleshooting
+
+| Symptom | Cause / fix |
+|---|---|
+| First Laya call times out | The first request loads a checkpoint; longer states cost more (~1.3–2.0 s on CPU). `LAYA_TIMEOUT_S=4.0` covers it; retry once if a cold start still exceeds it. |
+| `laya-serve` hangs at startup | TensorFlow in the same env. `USE_TF=0` is set by the scripts. |
+| `/health` shows `laya.reachable: false` | Sidecar down, wrong port, or `LAYA_API_KEY` mismatch. Check `.lreg/logs/laya.err.log`. |
+| treg 402 | Out of balance — `treg balance`, top up, or connect your own key. |
+| treg 503 `provider_capacity_unavailable` | treg's provider account is out; retry in a minute. Nothing was charged. |
+| Laya answers look overconfident | Run `bucketio calibrate`; `active` only uses calibrated, gated question types. |
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).
