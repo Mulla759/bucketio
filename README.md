@@ -70,6 +70,28 @@ uv run bucketio calibrate
 `TREG_MODE=http` uses the token from `TREG_TOKEN` or, if blank, from `~/.treg/config.json`
 (written by `treg login`). Verify is 3–60× cheaper than find, which is the whole point.
 
+## Laya: shadow first, active when measured
+
+Laya is a **classifier** — it never writes an email. BucketIO generates candidates from the
+learned patterns and asks Laya up to four choice questions per fetch:
+
+| Question | Asked when | Active effect (gated) |
+|---|---|---|
+| Q1 identity | fuzzy match lands in 80–95 | merge into the existing contact at ≥ 0.80 |
+| Q2 route | best pattern posterior in [0.45, 0.60) or only 1 verified hit | force/skip the pattern verify at ≥ 0.75 |
+| Q3 rank | every `generate` and `pattern_verify` | blend `0.7·rules + 0.3·Laya` and re-rank |
+| Q4 plausible | every `treg_find` hit | logged only (conflict audit) |
+
+Modes: `off` → `shadow` (asked and logged, **zero** influence — a golden test asserts
+byte-identical outputs to `off`) → `active`. Activation is per question type and
+data-driven: `bucketio calibrate` fits one temperature per (question, option count) and
+enables a type only when `accuracy > rules_accuracy` with `n_samples ≥ 50`. Flip back to
+`shadow` at any time.
+
+Measured on this machine (CPU, `LAYA_PRELOAD=1`): ~0.7–1.0 s for a `route` question and
+~1.3–2.0 s for a `rank` question with 12 candidates — hence `LAYA_TIMEOUT_S=4.0`. A Laya
+timeout or error is recorded and never blocks a fetch.
+
 ## Layout
 
 ```
