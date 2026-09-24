@@ -420,3 +420,42 @@ reversible via `LAYA_MODE=shadow`.
   hold (the answer cannot change the route then, so `applied = 0`).
 
 **Next:** Pass 7 - hardening (concurrency, idempotency, unmerge, backup).
+
+---
+
+## Pass 7 — Hardening (done 2026-09-24)
+
+- **Per-identity lock** (`resolver._identity_lock`): concurrent fetches of the same
+  `(name_key, company_key)` serialise in-process, so N simultaneous identical fetches
+  produce exactly **one** Treg find (test: 8 threads -> `treg_calls` find == 1,
+  `lookups` == 8).
+- **Real race found and fixed** by the 20-thread WAL test: two threads creating the same
+  new company could both pass the lookup and one hit `UNIQUE(company_key)`. `get_or_create_company`
+  now catches `IntegrityError`, re-reads the winner and continues.
+- **`bucketio unmerge <id>`** — clears `contacts.merged_into` (soft-merge audit stays).
+- **`bucketio calibrate`** — wires `calibrate.fit_temperatures` + `enabled_questions`
+  into the CLI (prints the fitted table and the activation gate).
+- **Compliance:** `do_not_contact = 1` rows are never exported (CSV + `/api/export`).
+- **Backups:** `scripts/backup.ps1` / `scripts/backup.sh` use SQLite's online backup API
+  (safe while the app runs), writing `backups/bucketio-<stamp>.db`.
+- `report --since 7d` already shipped in Pass 4.
+- Tests: `tests/test_hardening.py` — 5 tests (20 parallel fetches, same-fetch idempotency,
+  unmerge, DNC export, calibrate with no data). Full suite **201 passed**.
+
+### Live end-to-end (this machine, mock Treg + real Laya sidecar, `LAYA_MODE=shadow`)
+
+6 fetches covered every route: `treg_find` (Jane, John, Peter), `pattern_verify` (Mary),
+`generate` (Casper), `catch_all` (Milton). Laya answered all 6 (`routed_model: english`,
+`applied: 0`), truth was backfilled (`rank -> c1`, `route/plausible -> valid`), and the
+report showed **find=4, verify=2, $0.0175 spent, $0.0115 saved** with Laya agreement 1.0
+on 4 labelled samples. Calibration fitted 1 row and correctly enabled **nothing**
+(< 50 samples).
+
+**Measured CPU latency (important):** a short `route` question is ~0.7–1.0 s and a
+`rank` question (12 candidate emails) is ~1.3–2.0 s on this machine — the plan's 1.5 s
+default was too tight, so `LAYA_TIMEOUT_S` defaults to **4.0** everywhere
+(`.env.example`, `lreg.yaml`, setup scripts, docs). Laya still can never block a fetch.
+
+**Next:** v1 is complete. Remaining polish: swap `TREG_MODE=mock` -> `http` for real
+lookups (token already in `~/.treg/config.json`), run ~50 fetches in shadow, then
+`bucketio calibrate` decides what may activate.

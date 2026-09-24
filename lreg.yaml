@@ -1,4 +1,4 @@
-# Lreg = Laya + treg + BucketIO. One file that describes the whole stack.
+﻿# Lreg = Laya + treg + BucketIO. One file that describes the whole stack.
 # `scripts/setup_lreg.ps1` (Windows) / `scripts/setup_lreg.sh` (macOS/Linux) read this;
 # `bucketio lreg status` reports on it at runtime.
 version: 1
@@ -24,7 +24,7 @@ laya:
   api_key_env: LAYA_API_KEY
   default_api_key: change-me
   # CPU on this class of machine warms at ~0.5 s/call; 2.5 s tolerates a cold checkpoint
-  timeout_s: 2.5
+  timeout_s: 4.0
   log_dir: .lreg/logs
   pid_file: .lreg/laya.pid
 
@@ -35,3 +35,4 @@ treg:
   token_env: TREG_TOKEN
   # falls back to ~/.treg/config.json (written by `treg login`) when token_env is empty
   token_file: ~/.treg/config.json
+

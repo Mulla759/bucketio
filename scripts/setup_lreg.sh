@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+﻿#!/usr/bin/env sh
 # Lreg setup (macOS / Linux) - Laya + treg + BucketIO in one command.
 #
 #   ./scripts/setup_lreg.sh              # full setup, then serve the web UI
@@ -42,7 +42,7 @@ fi
 if [ "$SKIP_LAYA" -eq 0 ]; then
   sed -i.bak -e "s|^LAYA_MODE=.*|LAYA_MODE=shadow|" \
              -e "s|^LAYA_URL=.*|LAYA_URL=http://127.0.0.1:${LAYA_PORT}|" \
-             -e "s|^LAYA_TIMEOUT_S=.*|LAYA_TIMEOUT_S=2.5|" .env && rm -f .env.bak
+             -e "s|^LAYA_TIMEOUT_S=.*|LAYA_TIMEOUT_S=4.0|" .env && rm -f .env.bak
 fi
 grep -q '^TREG_MODE=' .env || printf 'TREG_MODE=http\n' >> .env
 
@@ -78,3 +78,4 @@ info "Laya pid $(cat .lreg/laya.pid) (logs: .lreg/logs/laya.*.log)"
 
 info "starting BucketIO on http://127.0.0.1:${WEB_PORT}"
 uv run bucketio serve --host 127.0.0.1 --port "${WEB_PORT}"
+

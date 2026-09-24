@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import math
 import sqlite3
+import threading
 import time
 from dataclasses import dataclass, field
 
@@ -341,7 +342,38 @@ def _safe_verify(client: TregClient, tracked: _Tracked, email: str) -> TregResul
     return result
 
 
+_locks_guard = threading.Lock()
+_identity_locks: dict[tuple[str, str], threading.Lock] = {}
+
+
+def _identity_lock(name_key: str, company_key: str) -> threading.Lock:
+    """One lock per (person, company): concurrent identical fetches serialise,
+    so the second one hits the cache instead of paying for a second find."""
+    key = (name_key, company_key)
+    with _locks_guard:
+        lock = _identity_locks.get(key)
+        if lock is None:
+            lock = threading.Lock()
+            _identity_locks[key] = lock
+        return lock
+
+
 def fetch(
+    conn: sqlite3.Connection,
+    name: str,
+    company: str,
+    *,
+    force: bool = False,
+    laya: object | None = None,
+    client: TregClient | None = None,
+) -> FetchResult:
+    """Fetch with a per-identity lock (Pass 7 idempotency)."""
+    parts = normalize_name(name)
+    with _identity_lock(parts.name_key, normalize_company(company)):
+        return _fetch(conn, name, company, force=force, laya=laya, client=client)
+
+
+def _fetch(
     conn: sqlite3.Connection,
     name: str,
     company: str,

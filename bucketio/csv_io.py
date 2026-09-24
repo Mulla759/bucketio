@@ -163,13 +163,16 @@ SELECT c.full_name AS full_name,
          WHERE l.contact_id = c.id
          ORDER BY l.id DESC LIMIT 1) AS route
 FROM contacts c JOIN companies co ON co.id = c.company_id
-WHERE c.merged_into IS NULL
+WHERE c.merged_into IS NULL AND c.do_not_contact = 0
 ORDER BY c.id
 """
 
 
 def export_contacts(conn: sqlite3.Connection, path: str | Any) -> int:
-    """Write the contacts sheet to ``path`` (file or stream); return row count."""
+    """Write the contacts sheet to ``path`` (file or stream); return row count.
+
+    ``do_not_contact`` rows are never exported (compliance, Pass 7).
+    """
     close_after = not hasattr(path, "write")
     stream: IO[str] = (
         open(path, "w", encoding="utf-8", newline="") if close_after else path

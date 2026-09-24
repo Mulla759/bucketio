@@ -1,4 +1,4 @@
-# Lreg setup (Windows) - Laya + treg + BucketIO in one command.
+﻿# Lreg setup (Windows) - Laya + treg + BucketIO in one command.
 #
 #   .\scripts\setup_lreg.ps1              # full setup, then serve the web UI
 #   .\scripts\setup_lreg.ps1 -NoStart     # set everything up, do not start anything
@@ -40,7 +40,7 @@ $envText = Get-Content ".env" -Raw
 if (-not $SkipLaya) {
     $envText = $envText -replace "(?m)^LAYA_MODE=.*$", "LAYA_MODE=shadow"
     $envText = $envText -replace "(?m)^LAYA_URL=.*$", "LAYA_URL=http://127.0.0.1:$LayaPort"
-    $envText = $envText -replace "(?m)^LAYA_TIMEOUT_S=.*$", "LAYA_TIMEOUT_S=2.5"
+    $envText = $envText -replace "(?m)^LAYA_TIMEOUT_S=.*$", "LAYA_TIMEOUT_S=4.0"
     $envText | Set-Content -Encoding utf8 ".env"
 }
 if (-not (Select-String -Path ".env" -Pattern "^TREG_MODE=" -Quiet)) {
@@ -99,3 +99,4 @@ Info "Laya pid $($p.Id) (logs: .lreg\logs\laya.*.log)"
 
 Info "starting BucketIO on http://127.0.0.1:$WebPort"
 uv run bucketio serve --host 127.0.0.1 --port $WebPort
+

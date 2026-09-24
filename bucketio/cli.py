@@ -14,6 +14,7 @@ from typing import Any
 import typer
 
 from . import __version__, config, csv_io, db
+from . import calibrate as calibrate_mod
 from . import report as report_mod
 from .laya_client import LayaClient
 from .resolver import FetchResult, fetch as resolver_fetch, to_json
@@ -294,6 +295,53 @@ def status() -> None:
 
     typer.echo(f"Treg:        mode={settings.treg_mode}")
     typer.echo(f"Web:         http://{host}:{port}")
+
+
+@app.command()
+def calibrate() -> None:
+    """Fit Laya temperatures and show which question types would activate."""
+    conn = _open_db()
+    try:
+        rows = calibrate_mod.fit_temperatures(conn)
+        enabled = calibrate_mod.enabled_questions(conn)
+    finally:
+        conn.close()
+    if not rows:
+        typer.echo(
+            "No labelled Laya decisions yet - run fetches with LAYA_MODE=shadow first."
+        )
+        return
+    typer.echo(calibrate_mod.format_report(rows))
+    typer.echo(
+        "Active (accuracy > rules, n>=50): "
+        + (", ".join(sorted(enabled)) if enabled else "none")
+    )
+
+
+@app.command()
+def unmerge(
+    contact_id: int = typer.Argument(..., help="Contact id to un-merge."),
+) -> None:
+    """Undo a soft merge (clear contacts.merged_into)."""
+    conn = _open_db()
+    try:
+        row = conn.execute(
+            "SELECT id, merged_into FROM contacts WHERE id = ?", (contact_id,)
+        ).fetchone()
+        if row is None:
+            raise typer.BadParameter(f"no contact with id {contact_id}")
+        if row["merged_into"] is None:
+            typer.echo(f"Contact {contact_id} is not merged.")
+            return
+        with db.tx(conn):
+            conn.execute(
+                "UPDATE contacts SET merged_into = NULL WHERE id = ?", (contact_id,)
+            )
+        typer.echo(
+            f"Unmerged contact {contact_id} (was merged into {row['merged_into']})."
+        )
+    finally:
+        conn.close()
 
 
 def main() -> None:

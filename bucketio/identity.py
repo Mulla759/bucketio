@@ -64,14 +64,23 @@ def get_or_create_company(
             company_id = int(row["id"])
 
     if company_id is None:
-        cursor = conn.execute(
-            """
-            INSERT INTO companies (name, company_key, domain, created_at, updated_at)
-            VALUES (?, ?, ?, datetime('now'), datetime('now'))
-            """,
-            ((raw_company or "").strip() or alias_key, alias_key, dom),
-        )
-        company_id = int(cursor.lastrowid)
+        try:
+            cursor = conn.execute(
+                """
+                INSERT INTO companies (name, company_key, domain, created_at, updated_at)
+                VALUES (?, ?, ?, datetime('now'), datetime('now'))
+                """,
+                ((raw_company or "").strip() or alias_key, alias_key, dom),
+            )
+            company_id = int(cursor.lastrowid)
+        except sqlite3.IntegrityError:
+            # concurrent create: another writer won the UNIQUE(company_key) race
+            row = conn.execute(
+                "SELECT id FROM companies WHERE company_key = ?", (alias_key,)
+            ).fetchone()
+            if row is None:
+                raise
+            company_id = int(row["id"])
 
     conn.execute(
         "INSERT OR IGNORE INTO company_aliases (alias_key, company_id) VALUES (?, ?)",
