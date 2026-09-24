@@ -1,6 +1,9 @@
 # BucketIO
 
-[![CI](https://github.com/Mulla759/bucketio/actions/workflows/ci.yml/badge.svg)](https://github.com/Mulla759/bucketio/actions/workflows/ci.yml)
+<!-- Private repo: the live Actions badge 404s for anonymous image proxies, so it is a
+     static badge that links to the runs. Swap in the real one once the repo is public:
+     [![CI](https://github.com/Mulla759/bucketio/actions/workflows/ci.yml/badge.svg)](https://github.com/Mulla759/bucketio/actions/workflows/ci.yml) -->
+[![CI](https://img.shields.io/badge/CI-GitHub%20Actions-blue?logo=githubactions&logoColor=white)](https://github.com/Mulla759/bucketio/actions/workflows/ci.yml)
 [![tests](https://img.shields.io/badge/tests-201%20passing-brightgreen)](#development)
 [![python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](#requirements)
 
@@ -108,7 +111,8 @@ The first two people at `acme.com` cost a find each (`treg_find`) — that is wh
 - Python **3.11–3.13** (Laya supports 3.10–3.13; `.python-version` pins 3.13)
 - [`uv`](https://docs.astral.sh/uv/) for the environments
 - Optional: a [treg](https://treg.to) token for real lookups (`TREG_MODE=http`)
-- Optional: ~1.5 GB of disk + a CPU for the Laya sidecar (`LAYA_MODE=shadow|active`)
+- Optional: ~1.5 GB of model weights (English + multilingual checkpoints) plus the torch
+  install, for the Laya sidecar (`LAYA_MODE=shadow|active`)
 
 ## Quick start (offline, no keys)
 
@@ -189,7 +193,8 @@ Live, checked 2026-09-24 (routed endpoints; you pay the child that serves, 0% ma
 | Find a work email | `treg.people.email.find` (22 providers) | from **$0.004834**/hit |
 | Verify an email | `treg.people.email.verify` (11 providers) | **$0** (ContactOut) → $0.0138 |
 
-Verify is 3–60× cheaper than find, which is the whole point. `TREG_MODE=http` uses the token from
+That gap is the whole point: a typical verify (~$0.0015) is ~3× cheaper than the cheapest
+find and up to ~100× cheaper than the priciest. `TREG_MODE=http` uses the token from
 `TREG_TOKEN` or, if blank, from `~/.treg/config.json` (written by `treg login`).
 
 ## Operations
@@ -205,7 +210,7 @@ uv run bucketio unmerge 412        # undo a soft merge
 `do_not_contact = 1` contacts are never exported (CSV or `/api/export`). Concurrent identical
 fetches are serialised per identity, so a duplicate in flight costs nothing extra.
 
-## Results (live end-to-end: mock Treg + real Laya sidecar, `shadow`)
+## Results (live end-to-end)
 
 | Input | Route | Result |
 |---|---|---|
@@ -246,23 +251,25 @@ light: tests only, no deploy, no secrets, so it cannot block work for environmen
 ## Layout
 
 ```
-bucketio/
-  schema.sql          # SQLite schema (packaged; migrate() is idempotent)
-  config.py           # pydantic-settings, safe offline defaults
-  db.py               # connect / migrate / tx
-  normalize.py        # names, nicknames, ASCII folding, company keys
-  identity.py         # exact + fuzzy identity, company aliases
-  patterns.py         # 12 email patterns, reverse-match, Beta posteriors
-  treg.py             # Treg adapter: mock / http / cli
-  resolver.py         # the pipeline: R1 cache → R2 catch_all → R3 verify → R4 find → R5 generate
-  laya_client.py      # Laya sidecar client + Q1–Q4 question builders
-  calibrate.py        # temperature fit + activation gate
-  report.py           # finds avoided, $ saved, Laya lift
-  csv_io.py           # sheet import/export (do_not_contact respected)
-  api.py  cli.py      # FastAPI + typer
-  web/                # index.html, style.css, app.js (no build step)
-scripts/              # setup_lreg.*, run_laya.*, backup.*
-tests/                # 201 tests; fixtures/treg_mock.json
+bucketio/               # the installable package
+  schema.sql            # SQLite schema (packaged; migrate() is idempotent)
+  config.py             # pydantic-settings, safe offline defaults
+  db.py                 # connect / migrate / tx
+  normalize.py          # names, nicknames, ASCII folding, company keys
+  identity.py           # exact + fuzzy identity, company aliases
+  patterns.py           # 12 email patterns, reverse-match, Beta posteriors
+  treg.py               # Treg adapter: mock / http / cli
+  resolver.py           # the pipeline: R1 cache → R2 catch_all → R3 verify → R4 find → R5 generate
+  laya_client.py        # Laya sidecar client + Q1–Q4 question builders
+  calibrate.py          # temperature fit + activation gate
+  report.py             # finds avoided, $ saved, Laya lift
+  csv_io.py             # sheet import/export (do_not_contact respected)
+  api.py  cli.py        # FastAPI + typer
+  web/                  # index.html, style.css, app.js (no build step)
+scripts/                # setup_lreg.*, run_laya.*, backup.*
+tests/                  # 201 tests; fixtures/treg_mock.json
+.github/workflows/ci.yml
+docs/LREG.md            # the Laya + treg + BucketIO stack guide
 ```
 
 ## Troubleshooting
