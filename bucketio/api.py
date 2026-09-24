@@ -20,7 +20,7 @@ from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
-from . import __version__, config, csv_io, db
+from . import __version__, config, csv_io, db, patterns
 from . import report as report_mod
 from .laya_client import LayaClient
 from .resolver import fetch as resolver_fetch, to_json
@@ -189,6 +189,73 @@ def create_app(settings=None) -> FastAPI:
                 params + [limit, offset],
             ).fetchall()
         return {"items": [_contact_item(row) for row in rows], "total": total}
+
+    @app.get("/api/companies")
+    def api_companies(
+        q: str = "",
+        limit: int = Query(500, ge=0),
+        offset: int = Query(0, ge=0),
+    ) -> dict:
+        """The yellow pages: companies with their best learned format.
+
+        ``confidence`` is the Beta posterior for the winning pattern, so a
+        company only reads as sure once Treg has confirmed the format.
+        """
+        where = []
+        params: list[object] = []
+        if q.strip():
+            like = f"%{_escape_like(q.strip())}%"
+            where.append("(co.name LIKE ? ESCAPE '\\' OR co.domain LIKE ? ESCAPE '\\')")
+            params.extend([like, like])
+        clause = f"WHERE {' AND '.join(where)}" if where else ""
+        with connection() as conn:
+            total = int(
+                conn.execute(
+                    f"SELECT COUNT(*) AS n FROM companies co {clause}", params
+                ).fetchone()["n"]
+            )
+            rows = conn.execute(
+                f"""
+                SELECT co.id, co.name, co.domain, co.is_catch_all,
+                       (SELECT COUNT(*) FROM contacts c
+                         WHERE c.company_id = co.id AND c.merged_into IS NULL) AS seen
+                FROM companies co
+                {clause}
+                ORDER BY co.name COLLATE NOCASE, co.id
+                LIMIT ? OFFSET ?
+                """,
+                params + [limit, offset],
+            ).fetchall()
+            items = []
+            for row in rows:
+                domain = row["domain"]
+                pattern: str | None = None
+                confidence: float | None = None
+                if domain:
+                    stats = patterns.pattern_stats(conn, domain)
+                    if stats:
+                        best = min(
+                            stats,
+                            key=lambda name: (
+                                -stats[name]["posterior"],
+                                -stats[name]["hits"],
+                                name,
+                            ),
+                        )
+                        pattern = best
+                        confidence = round(float(stats[best]["posterior"]), 4)
+                items.append(
+                    {
+                        "id": int(row["id"]),
+                        "name": row["name"],
+                        "domain": domain,
+                        "pattern": pattern,
+                        "confidence": confidence,
+                        "seen": int(row["seen"]),
+                        "is_catch_all": bool(row["is_catch_all"]),
+                    }
+                )
+        return {"items": items, "total": total}
 
     @app.get("/api/contacts/{contact_id}")
     def api_contact(contact_id: int) -> dict:

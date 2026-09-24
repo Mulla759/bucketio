@@ -252,6 +252,29 @@ def test_health_with_laya_off(client):
     assert body["laya"] == {"mode": "off", "enabled": False, "reachable": False}
 
 
+def test_companies_lists_learned_formats(client):
+    _fetch(client)
+
+    body = client.get("/api/companies").json()
+    assert body["total"] == 1
+    item = body["items"][0]
+    assert set(item) == {"id", "name", "domain", "pattern", "confidence", "seen", "is_catch_all"}
+    assert item["name"] == "Acme Inc"
+    assert item["domain"] == "acme.com"
+    assert item["pattern"] == "first.last"
+    assert 0 < item["confidence"] <= 1
+    assert item["seen"] == 1
+    assert item["is_catch_all"] is False
+
+    search = client.get("/api/companies", params={"q": "acme"}).json()
+    assert search["total"] == 1
+    assert client.get("/api/companies", params={"q": "nope"}).json() == {"items": [], "total": 0}
+
+    limited = client.get("/api/companies", params={"limit": 0}).json()
+    assert limited["total"] == 1
+    assert limited["items"] == []
+
+
 def test_static_index_and_app_js(client):
     index = client.get("/")
     assert index.status_code == 200
