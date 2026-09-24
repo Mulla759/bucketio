@@ -137,3 +137,41 @@ the Q1-Q4 builders and `laya_decisions` rows are ready to consume.
 **Verified live (2026-09-24):** `laya-serve` 0.3.20 running on 127.0.0.1:8001 with
 `LAYA_PRELOAD=1` on CPU, weights pulled from HF `convaiinnovations/laya` (English +
 multilingual checkpoints).
+
+---
+
+## Pass 4 (frontend) — static web UI
+
+- `bucketio/web/` — exactly three files, no framework, no build step:
+  - `index.html` — single semantic page; search box, fetch form (Name + Company +
+    `force`), §2.5 result card, contacts table (Name | Company | Email |
+    High-pattern email | Status pill | Confidence | Seen | Last verified | Route),
+    clickable rows → detail panel with lookup history, report strip, CSV import
+    form (multipart field `file`) and export link. Loads `./style.css` + `./app.js`
+    (relative, so FastAPI can serve them from `/static`).
+  - `style.css` — plain CSS, dark-first with a `prefers-color-scheme: light`
+    override; system font stack, no external fonts/CDN. Pills: `valid` green,
+    `invalid` red, `catch_all` amber, `risky` orange, `pattern_guess` blue,
+    `unverified`/`unknown`/`no_domain`/`not_found` grey.
+  - `app.js` — vanilla ES2020, no dependencies, no `innerHTML` (textContent +
+    `createElement` only). Functions: `api`, `renderResult`, `loadContacts`,
+    `renderTable`, `showDetail`, `loadReport`, `importCsv` (+ `debounce` 200 ms,
+    pill/format helpers, banner, `disableApiControls`, `init`).
+- Endpoints consumed: `POST /api/fetch`, `GET /api/contacts?q=&status=&limit=&offset=`
+  (`{items,total}`), `GET /api/contacts/{id}` (`{contact,lookups}`), `GET /api/report`
+  (`{fetches,routes,treg:{find_calls,verify_calls},est_saved_usd,laya:{agreement,samples}}`),
+  `POST /api/import` (multipart `file`), `GET /api/export` (plain link).
+- Missing report/contact fields render `-` (never throw); "find calls avoided" uses
+  `find_calls_avoided` if present else `fetches - treg.find_calls`. Every fetch is
+  try/catch'd and surfaces errors in the banner. `file://` shows "run `bucketio serve`",
+  disables API controls and skips auto-loads.
+- Verified: `node --check bucketio/web/app.js` clean; `index.html` references the two
+  assets with exact names; a throwaway Node smoke test (temp DOM stub, not committed)
+  exercised boot loads, table/result/detail rendering, report totals, missing-field
+  fallbacks and the `file://` guard — all green.
+- Still needs a manual browser check against `bucketio serve` once the Pass 4 backend
+  (`api.py`, `cli.py serve`) exists in this worktree: search/status/paging,
+  `POST /api/fetch` round-trip, CSV import + export download, pill appearance.
+
+**Next:** Pass 3 (`treg.py` + `resolver.py`) and the Pass 4 API (`api.py`,
+`cli.py serve`) so the page can be checked end to end.
