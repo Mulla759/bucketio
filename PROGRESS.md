@@ -459,3 +459,22 @@ default was too tight, so `LAYA_TIMEOUT_S` defaults to **4.0** everywhere
 **Next:** v1 is complete. Remaining polish: swap `TREG_MODE=mock` -> `http` for real
 lookups (token already in `~/.treg/config.json`), run ~50 fetches in shadow, then
 `bucketio calibrate` decides what may activate.
+
+---
+
+## Post-v1 — security sweep, README, CI (done 2026-09-24)
+
+- **Sweep:** no tokens, keys, personal paths or machine names anywhere in the tracked tree;
+  `.env`, `.lreg/`, `.laya-venv/` stay ignored. `subprocess` in the treg CLI adapter uses an
+  argument list, a timeout and no `shell=True`; the web UI uses `textContent` only.
+- **Fixed:** UTF-8 BOMs (PowerShell `Set-Content -Encoding utf8`) on `.env.example`,
+  `lreg.yaml` and both setup scripts — a BOM breaks `.env` parsing and `sh` shebangs.
+- **Fixed:** `PROGRESS.md` mojibake (UTF-8 bytes read as cp1252) — 42 damaged lines repaired.
+- **Hardened:** `setup_lreg.*` now generates a random 32-hex `LAYA_API_KEY`, writes it to
+  `.env` and passes the same key to the sidecar (the old `change-me` placeholder is gone).
+- **README:** rewritten with mermaid architecture / routing / sequence diagrams, a
+  configuration reference, security posture, development/CI and troubleshooting sections.
+- **CI:** `.github/workflows/ci.yml` — pytest on Python 3.11 and 3.13 (verified locally:
+  201 pass on 3.11.15 and 3.13) plus an offline CLI smoke test (`init` -> mock `fetch`).
+  Tests only, read-only token, no secrets, `fail-fast: false`.
+- **LICENSE:** MIT (matches `pyproject.toml`).

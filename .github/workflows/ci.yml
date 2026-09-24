@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.13"]
+    env:
+      UV_PYTHON: ${{ matrix.python }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install
+        run: uv sync --extra dev
+      - name: Test
+        run: uv run pytest -q
+
+  smoke:
+    name: offline smoke
+    runs-on: ubuntu-latest
+    env:
+      UV_PYTHON: "3.13"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install
+        run: uv sync --extra dev
+      - name: CLI works with no keys and no network
+        run: |
+          rm -f bucketio.db bucketio.db-wal bucketio.db-shm
+          uv run bucketio init
+          uv run bucketio fetch "Jane Doe" "Acme Inc" --json > /tmp/fetch.json
+          uv run python -c "import json; d=json.load(open('/tmp/fetch.json')); assert d['email']=='jane.doe@acme.com', d; assert d['route']=='treg_find', d; print('smoke ok:', d['email'], d['route'])"
