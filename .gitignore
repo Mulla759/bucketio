@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# BucketIO runtime
+*.db
+*.db-wal
+*.db-shm
+backups/
+.env
+.lreg/
+.laya-venv/
+.worktrees/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
