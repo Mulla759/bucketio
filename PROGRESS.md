@@ -243,3 +243,75 @@ the accepted-but-unused `laya` parameter and `laya_decisions`.
 **Next:** Pass 3 (`treg.py` + `resolver.py`) and the Pass 4 API (`api.py`,
 `cli.py serve`) so the page can be checked end to end.
 
+---
+
+## Pass 4 (CLI/API/report/CSV)
+
+- `bucketio/report.py` — `Report` dataclass + `to_json()` (exact keys:
+  fetches / routes / treg{find_calls,verify_calls,cost_usd} / est_saved_usd /
+  contacts / laya{agreement,samples}) and `build_report(conn, *, since=None)`.
+  `since` accepts "7d"/"24h"/"90m"/"30s"/"2w" or an ISO date/datetime (naive or
+  tz-aware, converted to UTC); anything else raises `ValueError`. routes =
+  counts per `lookups.route`; find/verify = COUNT over `treg_calls.kind` joined
+  to the windowed lookups; est_saved/cost = SUM over `lookups`; contacts =
+  COUNT(contacts WHERE merged_into IS NULL) (current total, not windowed).
+  Laya agreement = share of `laya_decisions` rows with a non-null `truth` whose
+  `answer` matches: truth "valid" -> answer "A", "invalid" -> "B" for
+  identity/route/plausible; for rank the truth is the verified candidate key
+  ("c1"); "agree"/"disagree" truths are used as-is. Uninterpretable rows (e.g.
+  rank truth "valid") are excluded from `laya_samples`; no rows -> None/0.
+- `bucketio/csv_io.py` — `import_contacts(conn, path, *, client=None)` (path or
+  open stream; header case-insensitive, BOM-tolerant, aliases and extra columns
+  tolerated) uses `get_or_create_company` + `resolve_contact`/`create_contact`
+  per row, sets email/email_source="import"/verification_status="unverified"
+  when Email is present, and returns {"rows","created","updated","errors"} with
+  per-row errors (row number + message) instead of aborting. Missing Name or
+  Company header -> ValueError. `export_contacts(conn, path) -> int` writes
+  Name,Company,Email,High-pattern email,Status,Confidence,Seen,Last verified,Route
+  (skips merged_into; Route = latest lookup route) to a file or stream.
+- `bucketio/api.py` — `create_app(settings=None)` + module-level `app`. Routes:
+  POST /api/fetch (422 on missing/blank name/company; 503 NotConfigured),
+  GET /api/contacts (q LIKE name/company/email with escaped wildcards, status,
+  limit=50, offset=0 -> {items,total}), GET /api/contacts/{id}
+  ({contact,lookups} newest first; 404), GET /api/report?since= (400 bad since),
+  POST /api/import (multipart `file`), GET /api/export (text/csv attachment),
+  GET /health (db/laya{mode,enabled,reachable}/treg{mode}, never raises when
+  Laya is down), then the `/` StaticFiles(html=True) mount last so / serves
+  index.html and ./app.js + ./style.css resolve. Fresh sqlite connection per
+  request; migrate in the lifespan.
+- `bucketio/cli.py` — kept `version` + callback; added `init`, `fetch NAME
+  COMPANY [--force] [--json]`, `import PATH`, `export PATH`, `report [--since]
+  [--json]`, `serve [--host 127.0.0.1] [--port 8080]` (uvicorn) and the `lreg`
+  sub-app `lreg status` (tiny YAML-subset reader for lreg.yaml, defaults when
+  absent; prints db path/table count, Laya mode/transport/health, Treg mode and
+  web URL; always exits 0). Every DB command migrates first; all commands run
+  with TREG_MODE=mock + LAYA_MODE=off and no .env.
+- Tests: `tests/test_report.py` (18), `tests/test_csv_io.py` (11),
+  `tests/test_api.py` (13), `tests/test_cli.py` (13) — suite **168 passed**
+  (113 existing + 55 new). Every test points at a tmp DB and the mock fixture
+  by monkeypatching `bucketio.config.get_settings` (+ `bucketio.resolver`).
+- Verified end-to-end outside pytest: `bucketio init/fetch/report/import/
+  export/lreg status` against a temp DB with mock Treg, and a real
+  `uvicorn bucketio.api:app` on 127.0.0.1:8099 — `/` 200 text/html, `/app.js`
+  200 application/javascript, `/api/contacts` {items,total}, `/health` ok,
+  `/api/report` ok (HTTP smoke only, no browser screenshot).
+
+**Deviations / decisions:**
+- `treg.cost_usd` in the report is `SUM(lookups.cost_usd)` (as specified), not
+  a re-sum of `treg_calls.cost_usd`.
+- `contacts` in the report is the current non-merged total, not filtered by
+  `since` (the spec only says to filter `lookups.created_at`).
+- Import does not touch `seen_count` (an import is not a fetch) and passes the
+  email's domain to `get_or_create_company` so imports teach company domains.
+- `import_contacts(..., client=None)` accepts the Treg client for the future
+  verify-on-import path but ignores it in Pass 4.
+- `lreg status` reports runtime settings (env/.env) and annotates values that
+  differ from lreg.yaml (e.g. `[lreg.yaml: shadow]`); lreg.yaml supplies the
+  web URL and is read with a tiny built-in YAML-subset parser (PyYAML is not a
+  dependency).
+- `report --since` with an invalid value exits non-zero via
+  `typer.BadParameter` (the API returns 400).
+
+**Next:** Pass 5 wires Laya into `resolver.fetch` (`laya_decisions`, the `laya`
+parameter) — the report's agreement metric is ready for it.
+
