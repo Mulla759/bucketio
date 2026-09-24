@@ -624,9 +624,15 @@ re-checking the Treg rates/date in the Rates footnote before launch.
   the vermilion period + Space Mono "DIRECTORY", both woff2 faces base64-embedded so
   the file is self-contained) plus `logo-lockup-1024.png` (transparent).
 - `frontend/index.html` gained the three `<link rel="icon">` / `apple-touch-icon` tags.
+  It also carries the social card now: `og-image.png` is the lockup (mark + Montagu
+  Slab BUCKET.IO with the vermilion period + Space Mono DIRECTORY) rendered at
+  1280×640 on the paper stock, wired as `og:image` (with type/size/alt) and
+  `twitter:card summary_large_image`; the same file is what to upload as the GitHub
+  repository's social preview.
 - Verified: `npm run typecheck` / `npm run build` clean, every asset copied
   byte-identical into `bucketio/web/`, `GET /favicon.svg` → 200 `image/svg+xml`, both
-  PNGs → 200 `image/png`, `GET /` still 200, `uv run pytest -q` 202 passed.
+  PNGs → 200 `image/png`, `GET /og-image.png` → 200 `image/png` 1280×640, `GET /`
+  still 200, `uv run pytest -q` 202 passed.
 - Note: `logo.svg` is ~134 KB because both fonts are embedded unmodified; subsetting
   with fonttools would bring it to ~10 KB if that ever matters. The lockup is an
   ink-on-paper asset (the ribs are paper-bright, not transparent), so it is meant for
