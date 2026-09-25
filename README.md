@@ -28,6 +28,14 @@ when `bucketio calibrate` shows it beats the rules.
 | **Stack guide** | [`docs/LREG.md`](docs/LREG.md) |
 | **Pass log** | [`PROGRESS.md`](PROGRESS.md) |
 
+## For agents — `llms.txt`
+
+Point any coding agent at **<https://bucketio.vercel.app/llms.txt>**, or paste the prompt
+`set up bucketio — https://bucketio.vercel.app/llms.txt`. That file is the complete end-to-end
+setup runbook: plain text, served at `/llms.txt`, sourced from
+[`frontend/public/llms.txt`](frontend/public/llms.txt) (Vite copies it into `bucketio/web` and
+the CDN).
+
 ## Contents
 
 - [Architecture](#architecture) · [The routing pipeline](#the-routing-pipeline) · [A cheap lookup, step by step](#a-cheap-lookup-step-by-step)
