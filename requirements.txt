@@ -1,0 +1,8 @@
+fastapi
+pydantic
+pydantic-settings
+httpx
+rapidfuzz
+Unidecode
+dnspython
+python-multipart
