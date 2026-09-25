@@ -36,7 +36,7 @@ import type {
 } from "./lib/types";
 
 const REPO_URL = "https://github.com/Mulla759/bucketio";
-const AGENT_PROMPT = `set up bucketio — ${REPO_URL}`;
+const AGENT_PROMPT = "set up bucketio — https://bucketio.vercel.app/llms.txt";
 const INSTALL_COMMAND = `git clone ${REPO_URL} && uv sync --extra dev && uv run bucketio init`;
 const CONNECT_COMMAND = "treg login";
 const ASK_COMMAND = 'uv run bucketio fetch "Iris Calloway" "Meridian Freight"';
