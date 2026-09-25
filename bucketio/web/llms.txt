@@ -1,0 +1,378 @@
+# BucketIO
+
+> A local, self-hosted **SQLite contact store that sits in front of [Treg](https://treg.to)**.
+> It answers *"what is this person's work email?"* for as little money as possible: known people
+> are returned from the local bucket for **$0**; when a company's email format is known it builds
+> the address and buys **one verify** (~$0.0015); otherwise it buys **one find**
+> (~$0.0048–$0.15) and learns that company's format from the answer, so the next person there is
+> cheap. A local [Laya](https://huggingface.co/convaiinnovations/laya) model runs as a **classifier
+> / tie-breaker** in the gray zones — it scores and re-ranks, and **never writes an address** — and
+> starts in `shadow` (asked and logged, zero influence) until `bucketio calibrate` proves it beats
+> the rules.
+
+Use this page when a human tells you *"set up bucketio"*. It is the complete end-to-end runbook:
+Treg token → clone → install → first lookup → web directory → optional Laya scorer → everyday
+commands → config/API reference → troubleshooting.
+
+- **Repo:** https://github.com/Mulla759/bucketio
+- **This file:** https://bucketio.vercel.app/llms.txt
+- **Live site:** https://bucketio.vercel.app/
+- **Engine (contact data):** [Treg](https://treg.to) — its agent contract is https://treg.to/llms.txt
+- **Local model:** https://huggingface.co/convaiinnovations/laya
+- **License:** MIT, provided as-is.
+
+---
+
+## For the agent — how to run this setup
+
+Read this before you start. The human has already authorized the flow.
+
+1. **Ask for shell permission once and work straight through.** Do not stop between steps to ask
+   "should I continue?". Run each `[agent]` step in one shell; only pause for `[human]` steps.
+2. **Two kinds of step.** `[agent]` = run it yourself in a shell. `[human]` = browser-only (signing
+   into Treg, approving a login); hand the human the exact command/URL and wait for confirmation.
+3. **Collect three things up front** — ask in **one** message, then proceed:
+   - **OS** (macOS / Windows / Linux) — decides the install one-liners and `.sh` vs `.ps1`.
+   - **Treg** — do they already have an account/token, or do they need to sign in (browser OTP or
+     GitHub)? If they have a token, ask for it (a per-org token is preferred for agents/CI).
+   - Whether they want the **optional Laya scorer** (a ~1.5 GB model download + torch). Default is
+     no; skip it unless they ask.
+4. **Template values.** Everywhere below, replace `<TOKEN>`, `<TEAM_SLUG>` and `<ORG>` with the
+   human's answers. Their real values live only in `.env` (git-ignored) or `~/.treg/config.json`.
+5. **Secrets discipline.** `TREG_TOKEN` and `.env` are secrets: never print a token to the screen,
+   never commit `.env`, never write a token into a repo file, and never pass it on a command line
+   that gets logged. `.env` is already git-ignored. Prefer a **per-org token** for an agent — it
+   bakes in the team so no `TREG_ORG` is needed.
+6. **Report the outcome as a doorway, not an install log.** Open with one line about what the human
+   now has, then propose 2–3 concrete things to run. Mechanics go in a footnote. See *Report back*.
+
+### Runnability legend
+
+- **[agent]** — run it in a shell yourself.
+- **[human]** — a browser-only step for the human; give them the URL/command and wait.
+
+---
+
+## Prerequisites
+
+- **`git`** — to clone the repo (Step 2).
+- **Python 3.11–3.13** (`pyproject.toml`: `requires-python = ">=3.11,<3.14"`; `.python-version`
+  pins 3.13). `uv` will fetch a suitable interpreter for you — you do not need one installed.
+- **`uv`** — the Python environment manager. Install:
+  - macOS / Linux:
+    ```sh
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
+  - Windows (PowerShell):
+    ```powershell
+    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+    ```
+- **The `treg` CLI** — for a real token and for `TREG_MODE=http`. Install:
+  ```sh
+  curl -fsSL https://treg.to/install.sh | sh
+  ```
+  (Python 3.12+; the installer also registers the Treg MCP server and skill. One-shot authed
+  install: `curl -fsSL https://treg.to/install.sh | sh -s -- --token <TOKEN>`.)
+- **Optional — Laya scorer:** ~1.5 GB of model weights plus torch. The bundle script installs it
+  into a separate `.laya-venv`; you can also request it as an app extra with `uv sync --extra laya`.
+  Skip it unless the human asked for it (Step 5).
+
+Verify the toolchain before continuing:
+
+```sh
+uv --version
+treg --version
+```
+
+---
+
+## Step 1 — Get a Treg token  [human] / [agent]
+
+Treg is the paid contact-data source. The token can come from the CLI's own config, or from `.env`
+(`TREG_TOKEN`) — BucketIO reads either.
+
+```sh
+# Install the treg CLI (skip if already installed)
+curl -fsSL https://treg.to/install.sh | sh
+
+# Sign in — pick ONE:
+treg login                                  # [human] opens a browser (GitHub OAuth)
+treg login --email you@company.com          # [human] a 6-digit code is emailed
+treg login --token <TOKEN>                  # [agent] no browser; a per-org token bakes in the team
+treg org join <code> --email you@company.com # [human] accept an invite; creates you if new
+```
+
+A **per-org token** (from `treg org create` / `treg org join`, or a dashboard API key) needs no
+`TREG_ORG`; an **identity token** from `treg login` needs `X-Treg-Org` / `TREG_ORG=<TEAM_SLUG>`.
+
+Verify the token works and the account is funded:
+
+```sh
+treg balance                       # prepaid balance + recent charges
+treg catalog search "find a work email"   # confirm the people/email endpoints are reachable
+```
+
+If the human handed you a token but you do not want to run `treg login`, put it in `.env` as
+`TREG_TOKEN=<TOKEN>` later (Step 3) and keep `TREG_MODE=http`.
+
+---
+
+## Step 2 — Clone + install  [agent]
+
+```sh
+git clone https://github.com/Mulla759/bucketio
+cd bucketio
+uv sync --extra dev
+uv run bucketio init
+```
+
+`uv run bucketio init` creates (or upgrades) the SQLite database at `DB_PATH` (default
+`./bucketio.db`), applies `bucketio/schema.sql` and seeds the global pattern priors. It prints the
+DB path and table count. The migration is idempotent.
+
+Optional sanity check — the whole suite runs offline with no keys (202 tests):
+
+```sh
+uv run pytest -q
+# or as one line:
+git clone https://github.com/Mulla759/bucketio && cd bucketio && uv sync --extra dev && uv run bucketio init
+```
+
+---
+
+## Step 3 — First lookup  [agent]
+
+```sh
+uv run bucketio fetch "Iris Calloway" "Meridian Freight"
+uv run bucketio fetch "Iris Calloway" "Meridian Freight" --json
+uv run bucketio fetch "Iris Calloway" "Meridian Freight" --force   # bypass the cache and re-verify
+```
+
+With the **default `TREG_MODE=mock`** this is deterministic and offline: no network, no cost — a
+fixture answers so you can see the whole route and cost model before spending anything.
+
+For **live lookups**, edit `.env` (created from `.env.example`; if it does not exist, copy it) and
+set:
+
+```
+TREG_MODE=http
+TREG_TOKEN=<TOKEN>        # leave blank to fall back to ~/.treg/config.json from `treg login`
+# TREG_ORG=<TEAM_SLUG>    # only when the token is an identity token
+```
+
+A token from `treg login` is read automatically from `~/.treg/config.json` when `TREG_TOKEN` is
+blank. Empty env values are ignored, so the defaults apply.
+
+**Result codes** (the directory's abbreviations) and the routes behind them:
+
+| Code | Meaning | Route(s) | Treg calls | Cost |
+|---|---|---|---|---|
+| `KN` | Known — cached, recently verified | `cache_hit` | 0 | **$0** |
+| `VF` | Verified — built from a learned format, then verified | `pattern_verify`, `catch_all` | 1 verify (or 0 for catch-all) | ~$0.0015 |
+| `FD` | Found by Treg; its format is learned from the result | `treg_find` | 1 find | $0.0048–$0.15 |
+| `PG` | Pencilled in — best generated guess, not verified | `generate` | 0–1 verify | $0–$0.0015 |
+
+The pipeline takes the **first** route that applies: `cache_hit` (R1) → `catch_all` (R2) →
+`pattern_verify` (R3, pattern posterior ≥ `VERIFY_MIN_POSTERIOR` 0.60 and ≥ `VERIFY_MIN_HITS` 2
+verified hits) → `treg_find` (R4) → `generate` (R5). Every outcome, valid **or** invalid, updates a
+per-domain Beta posterior, so a wrong guess is avoided next time and a catch-all domain never buys
+another verify.
+
+---
+
+## Step 4 — Web directory  [agent]
+
+```sh
+uv run bucketio serve
+# => http://127.0.0.1:8080/
+```
+
+`bucketio serve` starts one FastAPI app that serves both the JSON API under `/api` and the web UI.
+The built site is **committed** in `bucketio/web`, so it works from a fresh clone with no `npm`
+step. Options: `--host 127.0.0.1` and `--port 8080`.
+
+If the API is unreachable, the site falls back to an **offline in-browser demo** (clearly labelled);
+the setup commands still apply. The same app also runs on Vercel, where the UI is promoted to the
+CDN and `DB_PATH` defaults to `/tmp/bucketio.db`.
+
+Common operations in the UI: search/filter the white pages, see each company's learned format in the
+yellow pages, place a call, import a CSV, export the current sheet, and watch Laya's agreement.
+
+---
+
+## Step 5 — Optional Laya (the local scorer)  [agent + human]
+
+Laya is a **local classifier**, not a generator. It is asked up to four choice questions per fetch
+(identity, route, rank, plausible); `rank` blends `0.7·rules + 0.3·Laya` and re-ranks candidates.
+It **never writes an address**, and a timeout or error never blocks a fetch.
+
+One-shot bundle (installs `laya[serve]` into a separate `.laya-venv`, writes a random
+`LAYA_API_KEY` into `.env`, applies the schema, starts the sidecar on `127.0.0.1:8001`, then serves
+the web UI on 8080):
+
+```sh
+./scripts/setup_lreg.sh            # macOS / Linux
+```
+
+```powershell
+.\scripts\setup_lreg.ps1           # Windows
+```
+
+Flags: `--skip-laya` / `-SkipLaya` (BucketIO only, no model download) and `--no-start` /
+`-NoStart` (set everything up, start nothing). The first run downloads ~1.5 GB of weights; logs
+land in `.lreg/logs/laya.*.log`.
+
+- **Default `LAYA_MODE=off`.** The bundle sets it to **`shadow`** when it installs the sidecar:
+  Laya is asked and its answers logged, but it changes **nothing**. To run it yourself without the
+  bundle, install `laya[serve]>=0.3.20`, start `laya-serve` (`./scripts/run_laya.sh` /
+  `.\scripts\run_laya.ps1`), and set `LAYA_MODE=shadow`.
+- **Activation is gated and data-driven.** Flipping to `LAYA_MODE=active` only applies a question
+  type once `uv run bucketio calibrate` shows it has **≥50 labelled shadow samples** and accuracy
+  **greater than the rules**. Until then `active` behaves like `shadow` for that question.
+- Decide with:
+  ```sh
+  uv run bucketio calibrate          # fit temperatures + show the activation gate
+  uv run bucketio report --since 7d  # Laya agreement, finds avoided, $ saved
+  ```
+- You can flip back to `shadow` at any time — activation is per question type and reversible.
+
+---
+
+## Step 6 — Everyday commands  [agent]
+
+```sh
+# CSV in / out — import header is Name,Company[,Email] (case-insensitive, BOM-tolerant)
+uv run bucketio import contacts.csv
+uv run bucketio export contacts.csv
+
+# Spend / route / Laya report (--since: 7d, 24h, 90m, 30s, 2w, or an ISO date)
+uv run bucketio report --since 7d
+uv run bucketio report --since 7d --json
+
+# The activation decision for Laya
+uv run bucketio calibrate
+
+# Undo a soft merge (clears contacts.merged_into)
+uv run bucketio unmerge 412
+
+# Stack health (DB, Laya, Treg, web URL) — exits 0 even when something is down
+uv run bucketio lreg status
+
+# Version
+uv run bucketio version
+```
+
+Backups use SQLite's online backup API, so they are safe while the app is running:
+
+```sh
+./scripts/backup.sh                 # macOS / Linux -> ./backups/bucketio-<timestamp>.db
+```
+
+```powershell
+.\scripts\backup.ps1                # Windows
+```
+
+**Compliance.** BucketIO stores business contact data only. `do_not_contact = 1` rows are excluded
+from **every** export (`bucketio export` and `/api/export`). You own CAN-SPAM/GDPR compliance for
+how the output is used.
+
+---
+
+## Configuration reference
+
+Copy `.env.example` to `.env`. Safe defaults: `TREG_MODE=mock` + `LAYA_MODE=off` run fully offline.
+**Empty values are ignored** (`env_ignore_empty`), so leaving `TREG_TOKEN=` blank keeps the default
+(and falls back to `~/.treg/config.json`).
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `DB_PATH` | `./bucketio.db` | SQLite file (WAL). On Vercel the default is `/tmp/bucketio.db` when `VERCEL` is set. |
+| `TREG_MODE` | `mock` | `mock` \| `http` \| `cli`. `mock` = deterministic fixture, no network, no cost. |
+| `TREG_BASE_URL` | `https://treg.to` | Treg gateway. |
+| `TREG_TOKEN` | *(blank)* | Treg token; alias `TREG_API_KEY`. Falls back to `~/.treg/config.json` when blank. |
+| `TREG_ORG` | *(blank)* | Team slug; only for identity tokens (a per-org token bakes in the team). |
+| `TREG_FIND_COST` | `0.004834` | $ per successful find, used for the cost report. |
+| `TREG_VERIFY_COST` | `0.0015` | $ per successful verify, used for the cost report. |
+| `TREG_TIMEOUT_S` | `60.0` | HTTP/CLI timeout for a Treg call (code default; not in `.env.example`). |
+| `LAYA_MODE` | `off` | `off` \| `shadow` (asked + logged, zero influence) \| `active` (gated by calibrate). |
+| `LAYA_TRANSPORT` | `http` | `http` (sidecar) \| `inprocess`. |
+| `LAYA_URL` | `http://127.0.0.1:8001` | Sidecar address. |
+| `LAYA_API_KEY` | `change-me` | Shared secret for the sidecar; `setup_lreg` generates a random one. |
+| `LAYA_TIMEOUT_S` | `4.0` | Timeout; measured CPU latency is ~0.7–2.0 s (`.env.example` 4.0; bare code fallback 1.5). |
+| `LAYA_WEIGHT` | `0.3` | Blend weight for the `rank` question: `(1-W)·rules + W·Laya`. |
+| `CACHE_TTL_DAYS` | `90` | `cache_hit` freshness window. |
+| `VERIFY_MIN_POSTERIOR` | `0.60` | Minimum pattern posterior to attempt `pattern_verify`. |
+| `VERIFY_MIN_HITS` | `2` | Minimum verified hits before a pattern may be verified. |
+| `VERIFY_MAX_TRIES` | `2` | Verifies per lookup before falling back to a find. |
+| `GENERATE_VERIFY_TOP` | `1` (true) | Verify the top generated candidate on the `generate` route. |
+| `USE_TF` | `0` | Keep TensorFlow out of the Laya env (`.env.example` 0; bare code fallback true). |
+
+---
+
+## HTTP API reference
+
+One FastAPI app serves the JSON API **and** the web UI (all `/api` routes are registered before the
+`/` static mount, so the API wins). Base: `http://127.0.0.1:8080`.
+
+| Method & path | Request | Response |
+|---|---|---|
+| `GET /health` | — | `{ status, db, laya: {mode, enabled, reachable}, treg: {mode} }` |
+| `GET /api/contacts` | query: `q`, `status`, `limit` (50), `offset` (0) | `{ items: [...], total }` |
+| `GET /api/companies` | query: `q`, `limit` (500), `offset` (0) | `{ items: [{id,name,domain,pattern,confidence,seen,is_catch_all}], total }` |
+| `GET /api/contacts/{id}` | path: contact id | `{ contact, lookups: [...] }` (404 if absent) |
+| `GET /api/report` | query: `since` (optional) | report JSON: `fetches`, `routes`, `treg`, `est_saved_usd`, `contacts`, `laya` |
+| `POST /api/fetch` | JSON `{ name, company, force? }` | FetchResult JSON (`contact_id`, `email`, `route`, `treg_calls`, `confidence`, …); **503** if a live Treg token is missing |
+| `POST /api/import` | multipart `file` (CSV `Name,Company[,Email]`) | `{ rows, created, updated, errors }` |
+| `GET /api/export` | — | `text/csv` attachment `contacts.csv` (DNC rows excluded) |
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause / fix |
+|---|---|
+| `uv: command not found` | Install `uv` (Prerequisites) and reopen the shell so `~/.local/bin` is on `PATH`. Windows: use the PowerShell installer. |
+| Live lookups still cost nothing / always identical | `TREG_MODE=mock`. Set `TREG_MODE=http` and `TREG_TOKEN` in `.env`. Note `setup_lreg` leaves `TREG_MODE` as-is when `.env` already defines it (`.env.example` ships `mock`), so edit it by hand. |
+| `503` `NotConfigured` on `POST /api/fetch` | `TREG_MODE=http`/`cli` with no token. Put `TREG_TOKEN=<TOKEN>` in `.env`, or run `treg login` so `~/.treg/config.json` exists. |
+| `/health` shows `laya.reachable: false` | Sidecar down, wrong port, or `LAYA_API_KEY` mismatch. Check `.lreg/logs/laya.err.log`; start it with `./scripts/run_laya.sh` (or `.ps1`). |
+| Laya's first call times out | The first request loads a checkpoint and longer states cost more (~1.3–2.0 s on CPU). `LAYA_TIMEOUT_S=4.0` covers it; retry once on a cold start. |
+| `laya-serve` hangs at startup | TensorFlow in the same env. `USE_TF=0` is set by the scripts. |
+| Windows: `running scripts is disabled` | Policy blocks `.ps1`. Run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` (or `powershell -ExecutionPolicy ByPass ...`) for that shell only. |
+| Data disappears / wrong location | SQLite lives at `DB_PATH` (default `./bucketio.db`). On Vercel `/tmp` is per-instance and ephemeral — point `DB_PATH` at durable storage for persistence. |
+| Treg `402` | Out of balance — `treg balance`, top up, or connect your own provider key. |
+| Treg `503 provider_capacity_unavailable` | Treg's own provider account is out; retry in a minute or use your own key. Nothing was charged. |
+| Costs look stale | Rates are live-checked **2026-09-24** (find from `$0.004834`/hit, verify `$0`–`$0.0138`). Re-check with `treg catalog get treg.people.email.find` / `treg.people.email.verify` before quoting. |
+
+---
+
+## Report back
+
+End with a **doorway, not an install log**. One line on what the human now has, e.g.:
+
+> BucketIO is live — a local SQLite bucket in front of Treg, with a learned email format per
+> company. Known people are free, a known format costs one verify (~$0.0015), and a stranger costs
+> one find (~$0.0048–$0.15) instead of guessing.
+
+Then propose **2–3 concrete things you can do right now** and offer to run one:
+
+- *"Look up a person by name and company and show me the route (`KN`/`VF`/`FD`/`PG`) and what it cost."*
+- *"Serve the directory and open http://127.0.0.1:8080 so you can browse the white and yellow pages."*
+- *"Import a CSV of names + companies and report what BucketIO learned about each company's format."*
+
+Mechanics (Treg mode, token source, Laya on/off) go in a footnote — mention only what the human
+must act on: a token they pasted, a token that is missing, or a model they need to enable.
+
+---
+
+## Values to template
+
+| Placeholder | Meaning | Where it lives |
+|---|---|---|
+| `<TOKEN>` | Treg per-org (preferred) or identity token | `.env` → `TREG_TOKEN` (git-ignored), or `~/.treg/config.json`; never committed |
+| `<TEAM_SLUG>` | Treg team slug for an **identity** token | `.env` → `TREG_ORG`; sent as `X-Treg-Org` |
+| `<ORG>` | Treg org used to get the token | `treg org join` / `treg org use`, the dashboard, or `--token` |
+| `<WEB_PORT>` | Web UI / API port | `uv run bucketio serve --port` (default 8080) |
+| `<PORT>` | Laya sidecar port | sidecar env `LAYA_PORT`; BucketIO reaches it via `.env` → `LAYA_URL` (default 8001) |
+
+Never commit `.env`, `TREG_TOKEN`, or `LAYA_API_KEY` — `.env`, `.laya-venv/` and `.lreg/` are
+already git-ignored, but keep secrets out of the repo on purpose.
