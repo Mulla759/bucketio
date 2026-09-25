@@ -1,0 +1,233 @@
+/* App chrome: the logo lockup, the fixed header, the 3D cover, and the
+   small print that surrounds the sections. */
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink);
+}
+
+.logo-lockup {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 0.9;
+}
+
+.logo-word {
+  font: 700 15px/0.9 var(--serif);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.logo-dot {
+  color: var(--vermilion);
+}
+
+.logo-sub {
+  font: 400 9px/1 var(--mono);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.logo-ink .logo-sub {
+  color: var(--ink-2);
+}
+
+/* --- header ------------------------------------------------------------- */
+
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  visibility: hidden;
+  opacity: 0;
+  background: var(--paper-bright);
+  border-bottom: 1.5px solid var(--ink);
+}
+
+.site-header-inner {
+  max-width: var(--wide-max);
+  margin: 0 auto;
+  padding: 11px var(--wide-gutter);
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 2.2vw, 28px);
+}
+
+.site-header-logo {
+  all: unset;
+  cursor: pointer;
+}
+
+.site-header-spacer {
+  flex: 1;
+}
+
+.site-header-nav {
+  display: flex;
+  gap: clamp(12px, 1.8vw, 24px);
+  flex-wrap: wrap;
+}
+
+.site-header-nav button {
+  all: unset;
+  cursor: pointer;
+  white-space: nowrap;
+  font: 700 12.5px/1 var(--serif);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  transition: color 320ms;
+}
+
+.site-header-nav button:hover,
+.site-header-nav button.is-active {
+  color: var(--vermilion);
+}
+
+.site-header-folio {
+  white-space: nowrap;
+}
+
+.site-header-repo {
+  text-decoration: none;
+}
+
+@media (max-width: 819px) {
+  .site-header-nav,
+  .site-header-folio {
+    display: none;
+  }
+}
+
+/* --- cover -------------------------------------------------------------- */
+
+.cover-stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  perspective: 2400px;
+  perspective-origin: 50% 42%;
+}
+
+.vanta-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.vanta-layer canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.cover-board {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px 196px;
+}
+
+.book {
+  position: relative;
+  width: clamp(220px, min(calc((100vh - 252px) * 0.76), 46vw), 640px);
+  aspect-ratio: 0.76;
+  transform-style: preserve-3d;
+}
+
+/* the shadow the book throws on the mat board */
+.book::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateZ(-3px);
+  box-shadow:
+    0 42px 70px -28px rgba(20, 18, 15, 0.55),
+    0 16px 34px -18px rgba(20, 18, 15, 0.35);
+  pointer-events: none;
+}
+
+.cover-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 18px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+}
+
+.cover-hint-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  justify-content: center;
+  align-items: center;
+}
+
+.cover-hint-text {
+  font: 400 11px/1.3 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+@media (max-width: 819px) {
+  .cover-board {
+    padding: 20px 16px 168px;
+  }
+}
+
+@media (max-height: 640px) {
+  .cover-board {
+    padding: 18px 16px 150px;
+  }
+
+  .cover-hint {
+    bottom: 10px;
+  }
+}
+
+/* --- toast -------------------------------------------------------------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 70;
+  max-width: min(92vw, 640px);
+  background: var(--ink);
+  color: var(--paper-bright);
+  padding: 10px 14px;
+  font: 400 13px/1.35 var(--serif);
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.toast.is-error {
+  background: var(--vermilion-2);
+}
+
+.toast button {
+  all: unset;
+  cursor: pointer;
+  font: 700 11px/1 var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--yellow);
+}

@@ -1,0 +1,112 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--paper-news);
+  color: var(--ink);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-family: var(--serif);
+  font-variation-settings: "opsz" 16;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+#root {
+  overflow-x: clip;
+  background: var(--paper);
+  color: var(--ink);
+  font-variation-settings: "opsz" 16;
+}
+
+a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: var(--ink-4);
+  transition: text-decoration-color 320ms;
+}
+
+a:hover {
+  color: var(--ink);
+  text-decoration-color: var(--vermilion);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+img,
+canvas,
+svg {
+  max-width: 100%;
+  display: block;
+}
+
+::selection {
+  background: rgba(128, 90, 0, 0.3);
+}
+
+input::placeholder {
+  color: var(--ink-4);
+}
+
+:focus-visible {
+  outline: 1px solid var(--vermilion);
+  outline-offset: 3px;
+}
+
+/* Decorative-only layers (Vanta canvases, giant display type) */
+[aria-hidden="true"] {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  [data-header],
+  .no-print {
+    display: none !important;
+  }
+
+  [data-reveal],
+  [data-line] {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+  }
+
+  html,
+  body,
+  #root {
+    background: #fff;
+  }
+
+  section {
+    break-inside: avoid;
+  }
+}

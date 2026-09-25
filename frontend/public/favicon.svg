@@ -1,0 +1,19 @@
+<!-- BucketIO favicon: the BucketMark from frontend/src/components/Logo.tsx on a
+     paper-bright tile, art-directed for 16px. Ribs are cut-outs in the tile colour.
+     Palette: ink #1B1813, paper-bright #FBFAF6 (frontend/src/styles/tokens.css). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="BucketIO">
+  <rect width="32" height="32" fill="#FBFAF6" />
+  <path d="M11.2 3.4h9.6l1.9 5H9.3l1.9-5Z" fill="#1B1813" />
+  <path
+    d="M5.6 8.4h20.8l-1.9 19.1a2.6 2.6 0 0 1-2.6 2.3H10.1a2.6 2.6 0 0 1-2.6-2.3L5.6 8.4Z"
+    fill="#1B1813"
+  />
+  <path
+    d="M12.6 13.4v12.2M19.4 13.4v12.2"
+    stroke="#FBFAF6"
+    stroke-width="1.7"
+    stroke-linecap="round"
+    fill="none"
+  />
+  <path d="M4.6 8.4h22.8" stroke="#1B1813" stroke-width="2.4" stroke-linecap="square" />
+</svg>
