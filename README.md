@@ -290,6 +290,20 @@ design/                 # the original phone-book design handoff (prototype, fon
 docs/LREG.md            # the Laya + treg + BucketIO stack guide
 ```
 
+## Deploying to Vercel
+
+Import the repository into Vercel as-is. `vercel.json` pins the project to a two-part deploy:
+`frontend/` is built by Vite into a static site (`frontend/dist`), and `api/index.py` is deployed
+as a Python serverless function that serves the FastAPI `/api/*` and `/health` routes. No extra
+configuration is required beyond importing the repo.
+
+- `DB_PATH=/tmp/bucketio.db` is set automatically by `api/index.py` (`/tmp` is the only writable
+  path in Vercel's Python runtime), and the schema migration runs at function import time.
+- Treg runs in `mock` mode unless `TREG_TOKEN`/`TREG_MODE` are configured, so the deployed API
+  works offline out of the box.
+- Persistent SQLite is **not** guaranteed on Vercel: `/tmp` is per-instance and ephemeral, so
+  data may reset between cold starts. Point `DB_PATH` at durable storage if you need persistence.
+
 ## Troubleshooting
 
 | Symptom | Cause / fix |
