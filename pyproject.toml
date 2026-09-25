@@ -40,3 +40,10 @@ filterwarnings = ["ignore::DeprecationWarning"]
 
 [tool.uv]
 package = true
+
+# Vercel auto-detects the FastAPI app from the `fastapi` dependency, but the app
+# does not live at one of its default entrypoints, so point it at the real module.
+# The FastAPI preset serves the whole app as one function and promotes the
+# `bucketio/web` StaticFiles mount (registered after every /api route) to the CDN.
+[tool.vercel]
+entrypoint = "bucketio.api:app"

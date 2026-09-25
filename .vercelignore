@@ -1,11 +1,10 @@
 .venv
 frontend/node_modules
 frontend/dist
-design/uploads
+design
 tests
 .pytest_cache
 __pycache__
-bucketio/web
 *.db
 *.db-wal
 *.db-shm

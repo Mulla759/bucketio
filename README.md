@@ -292,15 +292,28 @@ docs/LREG.md            # the Laya + treg + BucketIO stack guide
 
 ## Deploying to Vercel
 
-Import the repository into Vercel as-is. `vercel.json` pins the project to a two-part deploy:
-`frontend/` is built by Vite into a static site (`frontend/dist`), and `api/index.py` is deployed
-as a Python serverless function that serves the FastAPI `/api/*` and `/health` routes. No extra
-configuration is required beyond importing the repo.
+Import the repository into Vercel as-is — no dashboard settings needed. Vercel auto-detects the
+FastAPI app from the `fastapi` dependency, so `pyproject.toml` points it at the real module:
 
-- `DB_PATH=/tmp/bucketio.db` is set automatically by `api/index.py` (`/tmp` is the only writable
-  path in Vercel's Python runtime), and the schema migration runs at function import time.
+```toml
+[tool.vercel]
+entrypoint = "bucketio.api:app"
+```
+
+The FastAPI preset then deploys the whole app as a single Vercel Function and promotes the
+`bucketio/web` `StaticFiles` mount (registered after every `/api` route, so the API wins) to the
+CDN. `vercel.json` only sets the build command, which rebuilds the directory from `frontend/` into
+`bucketio/web` before deploy:
+
+```json
+{ "buildCommand": "cd frontend && npm ci --no-audit --no-fund && npm run build" }
+```
+
+- `DB_PATH=/tmp/bucketio.db` is the default automatically on Vercel (`VERCEL` is set and `/tmp` is
+  the only writable path); the schema migration runs in the app's FastAPI lifespan.
 - Treg runs in `mock` mode unless `TREG_TOKEN`/`TREG_MODE` are configured, so the deployed API
-  works offline out of the box.
+  works offline out of the box, and the site falls back to the in-browser demo if `/health` is
+  unreachable.
 - Persistent SQLite is **not** guaranteed on Vercel: `/tmp` is per-instance and ephemeral, so
   data may reset between cold starts. Point `DB_PATH` at durable storage if you need persistence.
 

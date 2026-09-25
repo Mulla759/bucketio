@@ -17,6 +17,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 TREG_CONFIG_PATH = Path.home() / ".treg" / "config.json"
 
+# Vercel's Python runtime only allows writes under /tmp, so default the database
+# there when running on Vercel; DB_PATH still overrides this everywhere.
+_ON_VERCEL = bool(os.environ.get("VERCEL"))
+_DEFAULT_DB_PATH = Path("/tmp/bucketio.db") if _ON_VERCEL else Path("./bucketio.db")
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -27,7 +32,7 @@ class Settings(BaseSettings):
     )
 
     # --- storage ---
-    db_path: Path = Path("./bucketio.db")
+    db_path: Path = Field(default_factory=lambda: _DEFAULT_DB_PATH)
 
     # --- Treg ---
     treg_mode: Literal["mock", "http", "cli"] = "mock"
