@@ -1,0 +1,91 @@
+/* Docs, p. 12: the three setup steps, then the privacy block and the
+   directory-style link list. The sheet and frame come from utilities.css. */
+
+.docs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 28px 36px;
+}
+
+.docs-step {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.docs-step-head {
+  font: 400 24px/1 var(--serif);
+}
+
+.docs-step-no {
+  color: var(--vermilion);
+}
+
+.docs-step-blurb {
+  margin: 0;
+  font: 400 15px/1.5 var(--serif);
+  color: var(--ink-2);
+}
+
+.docs-step-note {
+  margin: 0;
+}
+
+.docs-lower {
+  margin-top: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px 48px;
+  border-top: 4px solid var(--ink);
+  padding-top: 14px;
+}
+
+.docs-privacy {
+  flex: 1 1 360px;
+  min-width: 0;
+}
+
+.docs-subhead {
+  font: 400 24px/1.1 var(--serif);
+}
+
+.docs-privacy-text {
+  margin: 8px 0 0;
+  font: 400 15.5px/1.5 var(--serif);
+  color: var(--ink-2);
+}
+
+.docs-links {
+  flex: 1 1 300px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font: 400 15px/1.3 var(--serif);
+}
+
+.docs-link {
+  padding: 6px 0;
+  color: var(--ink);
+  text-decoration: none;
+  transition: color 320ms;
+}
+
+.docs-link:hover {
+  color: var(--vermilion);
+}
+
+.docs-offline {
+  margin: 10px 0 0;
+  text-align: center;
+}
+
+@media (max-width: 819px) {
+  .docs-lower {
+    gap: 20px;
+  }
+
+  .docs-privacy,
+  .docs-links {
+    flex-basis: 100%;
+  }
+}

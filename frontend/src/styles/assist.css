@@ -1,0 +1,400 @@
+/* Directory assistance: the call desk on the left, the toll ticket on the
+   right, and the session's statement of charges below. */
+
+.assist {
+  background: var(--paper);
+  padding: clamp(40px, 5vw, 64px) 0 clamp(56px, 7vw, 96px);
+}
+
+.assist-inner {
+  max-width: var(--wide-max);
+  margin: 0 auto;
+  padding: 0 var(--wide-gutter);
+}
+
+.assist-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 56px;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 28px;
+}
+
+.assist-lede {
+  flex: 0 1 460px;
+  margin: 0;
+  font: 400 clamp(17px, 1.4vw, 20px) / 1.28 var(--serif);
+  letter-spacing: -0.02em;
+}
+
+.assist-cols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px clamp(28px, 4vw, 64px);
+  margin-top: 44px;
+  align-items: flex-start;
+}
+
+/* --- left: the call desk ------------------------------------------------- */
+
+.assist-left {
+  flex: 1 1 340px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.assist-error {
+  font: 400 13px/1.3 var(--serif);
+  color: var(--vermilion-2);
+}
+
+.assist-submit:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.assist-presets {
+  margin-top: 10px;
+}
+
+.assist-presets-title {
+  margin-bottom: 8px;
+}
+
+.assist-preset-list {
+  border-top: 1.5px solid var(--ink);
+}
+
+.assist-preset {
+  all: unset;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule-hair);
+  transition: color 320ms;
+}
+
+.assist-preset:hover {
+  color: var(--vermilion);
+}
+
+.assist-preset-no {
+  font: 700 11px/1 var(--serif);
+  color: var(--vermilion);
+}
+
+.assist-preset-name {
+  font: 400 14px/1.2 var(--serif);
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
+.assist-preset-co {
+  font-weight: 400;
+  text-transform: none;
+  color: var(--ink-3);
+}
+
+.assist-preset-note {
+  font: 400 10px/1.2 var(--serif);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-align: right;
+}
+
+/* --- right: the toll ticket ---------------------------------------------- */
+
+.assist-ticket {
+  flex: 1.5 1 460px;
+  min-width: 0;
+  background: var(--paper-bright);
+  border-top: 4px solid var(--ink);
+  border-bottom: 4px solid var(--ink);
+  padding: 18px clamp(14px, 2vw, 24px) 22px;
+  box-sizing: border-box;
+}
+
+.assist-ticket-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.assist-ticket-no {
+  font: 400 14px/1 var(--serif);
+  text-transform: uppercase;
+}
+
+.assist-ticket-note {
+  margin-top: 6px;
+}
+
+.assist-party {
+  margin-top: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1.5px solid var(--ink);
+}
+
+.assist-party-name {
+  font: 400 clamp(24px, 2.4vw, 34px) / 0.95 var(--serif);
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.assist-party-co {
+  margin-top: 6px;
+  font: 400 14px/1.2 var(--serif);
+  color: var(--ink-3);
+}
+
+.assist-step {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 84px;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--rule-dash);
+}
+
+.assist-step-no {
+  font: 700 11px/1.3 var(--serif);
+}
+
+.assist-step-body {
+  min-width: 0;
+}
+
+.assist-step-q {
+  font: 400 14px/1.15 var(--serif);
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
+.assist-step-a {
+  margin-top: 4px;
+  font: 400 14px/1.35 var(--serif);
+  overflow-wrap: anywhere;
+}
+
+.assist-step-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+  font: 400 11px/1.4 var(--serif);
+  color: var(--ink-3);
+}
+
+.assist-step-line span:first-child {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.assist-step-line span:last-child {
+  flex: none;
+}
+
+.assist-step-cost {
+  text-align: right;
+  font: 700 13px/1.3 var(--serif);
+}
+
+.assist-cands {
+  margin-top: 10px;
+  border: 1px solid var(--rule-dash);
+  padding: 8px 10px;
+}
+
+.assist-cand-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px 44px;
+  gap: 8px;
+}
+
+.assist-cand-head {
+  font: 700 9.5px/1.4 var(--serif);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border-bottom: 1px solid var(--rule-hair);
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+}
+
+.assist-cand-head span:not(:first-child),
+.assist-cand-row span:not(:first-child) {
+  text-align: right;
+}
+
+.assist-cand-row {
+  font: 400 12px/1.55 var(--serif);
+}
+
+.assist-cand-row span:first-child {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.assist-cand-mark {
+  color: var(--vermilion);
+}
+
+.assist-cand-note {
+  margin-top: 6px;
+}
+
+.assist-charged {
+  border-top: 3px double var(--ink);
+  margin-top: 2px;
+  padding-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  align-items: baseline;
+}
+
+.assist-charged-label {
+  font: 400 16px/1 var(--serif);
+  text-transform: uppercase;
+}
+
+.assist-charged-total {
+  font: 700 20px/1 var(--serif);
+}
+
+.assist-charged-cold {
+  font: 400 10.5px/1.3 var(--serif);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.assist-charged-coldv {
+  font: 400 12px/1 var(--serif);
+  color: var(--ink-3);
+}
+
+.assist-listed {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ink);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 20px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.assist-listed-main {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.assist-listed-label {
+  margin-bottom: 6px;
+}
+
+.assist-listed-name {
+  font: 400 13px/1.3 var(--serif);
+}
+
+.assist-listed-name b {
+  text-transform: uppercase;
+}
+
+.assist-listed-name span {
+  color: var(--ink-3);
+}
+
+.assist-listed-mail {
+  padding-left: 12px;
+}
+
+.assist-listed-email {
+  flex: none;
+  font-size: 13px;
+}
+
+.assist-listed-email.pencil {
+  font-size: 14px;
+}
+
+.assist-listed-code {
+  font: 700 9px/1 var(--serif);
+  color: var(--ink-3);
+}
+
+.assist-listed-code.is-guess {
+  color: var(--pencil);
+}
+
+.assist-idle {
+  margin-top: 14px;
+}
+
+/* --- statement of charges ------------------------------------------------ */
+
+.assist-statement {
+  margin-top: 56px;
+  border-top: 2px solid var(--ink);
+  padding-top: 14px;
+}
+
+.assist-statement-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.assist-statement-title {
+  font: 400 clamp(20px, 1.8vw, 26px) / 1 var(--serif);
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.assist-statement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin-top: 14px;
+  border-top: 1px solid var(--rule-hair);
+}
+
+.assist-statement-cell {
+  padding: 12px 12px 14px 0;
+  border-bottom: 1px solid var(--rule-hair);
+}
+
+.assist-statement-v {
+  margin-top: 6px;
+  font: 700 18px/1.1 var(--serif);
+}
+
+/* --- narrow: the columns stack, the ticket keeps its grid ---------------- */
+
+@media (max-width: 560px) {
+  .assist-step {
+    grid-template-columns: 24px minmax(0, 1fr) 54px;
+    gap: 8px;
+  }
+
+  .assist-step-cost {
+    font-size: 11.5px;
+  }
+
+  .assist-cand-grid {
+    grid-template-columns: minmax(0, 1fr) 34px 34px;
+  }
+}

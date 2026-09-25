@@ -1,0 +1,46 @@
+/* Design tokens — Editorial / Personal Magazine, art-directed as a telephone
+   directory. Values are the literal hexes from the design handoff (§4). */
+
+:root {
+  /* Paper */
+  --paper: #f1ece0;
+  --paper-bright: #fbfaf6;
+  --paper-news: #e7e0d0; /* mat board */
+  --paper-stone: #dadfd9;
+
+  /* Ink ramp */
+  --ink: #1b1813;
+  --ink-2: #38342c;
+  --ink-3: #6b655a;
+  --ink-4: #9c9587;
+  --ink-5: #c9c2b2;
+
+  /* Accents */
+  --vermilion: #c2412a;
+  --vermilion-2: #a6321f;
+  --pine: #2d5a3d;
+  --yellow: #edd351; /* directory yellow */
+  --cyan: #5cb8c9;
+  --print-blue: #4f7fb8;
+  --pencil: #3f6ea5; /* pencil blue, 4.5:1 on paper */
+  --sea-1: #9ec0e3;
+  --sea-2: #7da6d2;
+
+  /* Rules */
+  --rule-hair: rgba(27, 24, 19, 0.16);
+  --rule-ink: rgba(27, 24, 19, 0.3);
+  --rule-dash: rgba(27, 24, 19, 0.34);
+  --rule-dash-strong: rgba(27, 24, 19, 0.45);
+
+  /* Type */
+  --serif: "Montagu Slab", Georgia, serif;
+  --display: "Basteleur", Georgia, serif;
+  --mono: "Space Mono", ui-monospace, "Courier New", monospace;
+  --pencil-face: "PicNic", cursive;
+
+  /* Measure and gutter */
+  --page-max: 1180px;
+  --wide-max: 1440px;
+  --gutter: clamp(12px, 3vw, 40px);
+  --wide-gutter: clamp(16px, 4vw, 56px);
+}

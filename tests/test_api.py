@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -275,17 +277,21 @@ def test_companies_lists_learned_formats(client):
     assert limited["items"] == []
 
 
-def test_static_index_and_app_js(client):
+def test_static_index_and_built_assets(client):
     index = client.get("/")
     assert index.status_code == 200
     assert "text/html" in index.headers["content-type"]
     assert "BucketIO" in index.text
 
-    script = client.get("/app.js")
+    script_src = re.search(r'<script[^>]+src="([^"]+\.js)"', index.text)
+    style_href = re.search(r'<link[^>]+rel="stylesheet"[^>]+href="([^"]+\.css)"', index.text)
+    assert script_src, "the built index must reference a script bundle"
+    assert style_href, "the built index must reference a stylesheet"
+
+    script = client.get(script_src.group(1))
     assert script.status_code == 200
     assert "javascript" in script.headers["content-type"]
-    assert "use strict" in script.text
 
-    style = client.get("/style.css")
+    style = client.get(style_href.group(1))
     assert style.status_code == 200
     assert "css" in style.headers["content-type"]
