@@ -29,6 +29,10 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
+        # Hosting platforms (and copies of .env.example) frequently define the
+        # keys with empty values; treat those as "unset" and keep the defaults
+        # instead of failing validation on "".
+        env_ignore_empty=True,
     )
 
     # --- storage ---
