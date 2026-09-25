@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montagu+Slab:opsz,wght@16..144,100..700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lenis@1.3.26/dist/lenis.css">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15/dist/ScrollTrigger.min.js"></script>
+<script src="https://unpkg.com/lenis@1.3.26/dist/lenis.min.js"></script>
+<script src="./image-slot.js"></script>
+<style>
+@font-face{font-family:'Basteleur';src:url('fonts/Basteleur-Bold.otf') format('opentype');font-weight:700;font-display:swap}
+@font-face{font-family:'Basteleur';src:url('fonts/Basteleur-Moonlight.otf') format('opentype');font-weight:300;font-display:swap}
+@font-face{font-family:'PicNic';src:url('fonts/PicNic.woff2') format('woff2'),url('fonts/PicNic.woff') format('woff');font-weight:400;font-display:swap}
+html,body{margin:0;background:#E7E0D0;color:#1B1813}
+body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:#1B1813;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.18em;text-decoration-color:#9C9587;transition:text-decoration-color 320ms}
+a:hover{color:#1B1813;text-decoration-color:#C2412A}
+::selection{background:rgba(128,90,0,.30)}
+input::placeholder{color:#9C9587}
+:focus-visible{outline:1px solid #C2412A;outline-offset:3px}
+</style>
+</helmet>
+<div ref="{{ rootRef }}" style="font-variation-settings:'opsz' 16;background:#F1ECE0;color:#1B1813;font-family:'Montagu Slab',Georgia,serif;overflow-x:clip">
+
+<header data-header="" style="position:fixed;top:0;left:0;right:0;z-index:60;visibility:hidden;opacity:0;background:#FBFAF6;border-bottom:1.5px solid #1B1813">
+  <div style="max-width:1440px;margin:0 auto;padding:11px clamp(16px,4vw,56px);display:flex;align-items:center;gap:clamp(14px,2.2vw,28px)">
+    <button type="button" onClick="{{ goTop }}" style="all:unset;cursor:pointer;white-space:nowrap;font:700 12.5px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em;font-size:15px;line-height:.9">Bucket.io<br>Directory</button>
+    <span style="flex:1"></span>
+    <sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}">
+      <nav style="display:flex;gap:clamp(12px,1.8vw,24px);flex-wrap:wrap">
+        <button type="button" onClick="{{ goFeatures }}" style="all:unset;cursor:pointer;white-space:nowrap;font:700 12.5px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em;color:{{ navC.features }}" style-hover="color:#C2412A">What it does</button>
+        <button type="button" onClick="{{ goWhite }}" style="all:unset;cursor:pointer;white-space:nowrap;font:700 12.5px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em;color:{{ navC.white }}" style-hover="color:#C2412A">White pages</button>
+        <button type="button" onClick="{{ goYellow }}" style="all:unset;cursor:pointer;white-space:nowrap;font:700 12.5px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em;color:{{ navC.yellow }}" style-hover="color:#C2412A">Yellow pages</button>
+        <button type="button" onClick="{{ goAssist }}" style="all:unset;cursor:pointer;white-space:nowrap;font:700 12.5px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em;color:{{ navC.assist }}" style-hover="color:#C2412A">Try it</button>
+        <button type="button" onClick="{{ goDocs }}" style="all:unset;cursor:pointer;white-space:nowrap;font:700 12.5px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em;color:{{ navC.docs }}" style-hover="color:#C2412A">Docs</button>
+        <button type="button" onClick="{{ goContact }}" style="all:unset;cursor:pointer;white-space:nowrap;font:700 12.5px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em;color:{{ navC.contact }}" style-hover="color:#C2412A">Contact</button>
+      </nav>
+    </sc-if>
+    <span style="font:400 11px/1 'Montagu Slab',Georgia,serif;letter-spacing:.1em;text-transform:uppercase;color:#6B655A;white-space:nowrap">{{ folio }}</span>
+    <a href="{{ repoUrl }}" target="_blank" rel="noopener" style="border:1.5px solid #1B1813;padding:9px 12px;font:700 12px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;text-decoration:none;white-space:nowrap">GitHub ↗</a>
+  </div>
+</header>
+
+<section data-hero="" data-screen-label="Cover" style="position:relative;height:{{ heroH }};background:#E7E0D0">
+  <div style="position:sticky;top:0;height:100vh;overflow:hidden;perspective:2400px;perspective-origin:50% 42%">
+                        
+
+    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:36px 0 118px;box-sizing:border-box">
+      <div data-book="" onClick="{{ bookClick }}" style="position:relative;width:clamp(220px,min(calc((100vh - 170px) * 0.76),42vw),580px);aspect-ratio:0.76;transform-style:preserve-3d;cursor:{{ bookCursor }}">
+        <div style="position:absolute;top:4px;bottom:-6px;right:-8px;width:8px;background:repeating-linear-gradient(90deg,#D6CDB9 0 1px,#F4F0E6 1px 2px);transform:translateZ(-1px)"></div>
+        <div style="position:absolute;left:4px;right:-8px;bottom:-8px;height:8px;background:repeating-linear-gradient(180deg,#D6CDB9 0 1px,#F4F0E6 1px 2px);transform:translateZ(-1px)"></div>
+
+        <div style="position:absolute;inset:0;background:#FBFAF6;container-type:inline-size;padding:9% 8.5%;box-sizing:border-box;display:flex;flex-direction:column;transform:translateZ(0)">
+          <div style="display:flex;justify-content:space-between;font:400 max(7px,1.6cqw)/1 'Montagu Slab',Georgia,serif;letter-spacing:.16em;text-transform:uppercase;color:#6B655A"><span>Page 1</span><span>Contacts · formats · Treg</span></div>
+          <div style="margin-top:6cqw;font:400 8.4cqw/.92 'Montagu Slab',Georgia,serif;letter-spacing:-.02em;text-transform:uppercase">Look anyone up once. Never pay for them twice.</div>
+          <p style="margin:4cqw 0 0;font:400 max(10px,2.8cqw)/1.45 'Montagu Slab',Georgia,serif;color:#38342C">BucketIO is a small directory on your own machine that sits in front of Treg. It remembers everyone you’ve looked up, learns how each company writes its addresses, and pays for a find only when it has to.</p>
+          <div style="margin-top:5cqw;display:flex;flex-direction:column;gap:2.4cqw">
+            <button type="button" onClick="{{ copyPrompt }}" style="all:unset;cursor:pointer;text-align:center;background:#1B1813;color:#FBFAF6;padding:3cqw;font:700 max(10px,2.6cqw)/1 'Montagu Slab',Georgia,serif;text-transform:uppercase" style-hover="background:#38342C">{{ copyLbl.hero }}</button>
+            <button type="button" onClick="{{ goDocs }}" style="all:unset;cursor:pointer;text-align:center;font:400 max(10px,2.5cqw)/1 'Montagu Slab',Georgia,serif;text-decoration:underline;text-underline-offset:.2em">Read the docs ↓</button>
+          </div>
+          <div style="margin-top:auto;border-top:1px solid #1B1813;padding-top:2cqw;display:flex;justify-content:space-between;gap:2cqw;font:400 max(8px,2cqw)/1.3 'Montagu Slab',Georgia,serif;color:#38342C"><span>{{ peopleCount }} listings</span><span>{{ coCount }} formats</span><span>$0 per known call</span></div>
+        </div>
+        <div data-cover="" style="position:absolute;inset:0;transform-origin:0% 50%;transform-style:preserve-3d">
+          <div style="position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;transform:translateZ(0.6px);overflow:hidden;container-type:inline-size">
+            
+            <div style="position:absolute;inset:0;background:#EDD351">
+                <div data-411="" aria-hidden="true" style="position:absolute;left:-3%;bottom:5%;font:700 50cqw/.8 'Montagu Slab',Georgia,serif;letter-spacing:-.06em;color:#5CB8C9;white-space:nowrap">411</div>
+                <div data-intro="" style="position:absolute;left:6%;right:6%;top:5%;background:#1B1813;color:#EDD351;display:flex;justify-content:space-between;gap:2cqw;padding:1.3cqw 1.8cqw;font:700 max(7px,2.1cqw)/1 'Montagu Slab',Georgia,serif;text-transform:uppercase"><span>White &amp; yellow pages</span><span>{{ peopleCount }} listings · {{ coCount }} formats</span></div>
+                <div data-intro="" style="position:absolute;left:6%;right:6%;top:13%;font:700 12.4cqw/.86 'Montagu Slab',Georgia,serif;letter-spacing:-.03em;text-transform:uppercase;color:#1B1813">The<br>bucket<br>directory</div>
+                <div data-intro="" style="position:absolute;left:6%;top:48%;max-width:54%;font:400 max(9px,2.7cqw)/1.25 'Montagu Slab',Georgia,serif;color:#1B1813">Everyone already looked up, and how every company writes its addresses. Local edition, {{ year }}.</div>
+                <div data-cstamp="" style="position:absolute;right:6%;bottom:5%;width:24cqw;height:24cqw;background:#C2412A;color:#FBFAF6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4cqw;transform:rotate(-4deg)"><span style="font:700 9cqw/.9 'Montagu Slab',Georgia,serif;letter-spacing:-.04em">$0</span><span style="font:400 max(6px,1.5cqw)/1.25 'Montagu Slab',Georgia,serif;letter-spacing:.12em;text-transform:uppercase;text-align:center">Per known<br>call</span></div>
+                <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(20,18,15,.2) .6px,transparent .7px);background-size:3px 3px;mix-blend-mode:multiply;opacity:.4"></div>
+              </div>
+            <div data-shade-f="" style="position:absolute;inset:0;background:#141210;opacity:0;pointer-events:none"></div>
+          </div>
+          <div style="position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;transform:rotateY(180deg) translateZ(0.6px);background:#F1ECE0;overflow:hidden;container-type:inline-size">
+            <div style="position:absolute;inset:0;padding:9% 8.5%;box-sizing:border-box;display:flex;flex-direction:column;gap:3.2cqw">
+              <div style="font:400 max(7px,1.6cqw)/1 'Montagu Slab',Georgia,serif;letter-spacing:.16em;text-transform:uppercase;color:#6B655A">Inside front cover</div>
+              <div style="font:400 7.4cqw/.88 'Montagu Slab',Georgia,serif;letter-spacing:-.025em;text-transform:uppercase">How to use<br>this directory</div>
+              <p style="margin:0;font:400 max(9px,2.6cqw)/1.42 'Montagu Slab',Georgia,serif;color:#38342C">Ask for a person by name and company. BucketIO looks in its own pages first, then at the company’s house style, and only then places a paid call to Treg. Whatever comes back is written down, so nobody is looked up twice.</p>
+              <div style="border-top:1.5px solid #1B1813;padding-top:2.2cqw;font:700 max(7px,1.7cqw)/1 'Montagu Slab',Georgia,serif;letter-spacing:.14em;text-transform:uppercase">Key to abbreviations</div>
+              <div style="display:flex;flex-direction:column;gap:1.6cqw;font:400 max(8.5px,2.4cqw)/1.3 'Montagu Slab',Georgia,serif">
+                <div style="display:flex;gap:3cqw;padding-bottom:1.6cqw;border-bottom:1px dashed rgba(27,24,19,.34)"><b style="font-family:'Montagu Slab',Georgia,serif;width:6cqw;flex:none">KN</b><span>Known — answered from the bucket, $0.00.</span></div>
+                <div style="display:flex;gap:3cqw;padding-bottom:1.6cqw;border-bottom:1px dashed rgba(27,24,19,.34)"><b style="font-family:'Montagu Slab',Georgia,serif;width:6cqw;flex:none">VF</b><span>Verified — built from the house style, checked by Treg.</span></div>
+                <div style="display:flex;gap:3cqw;padding-bottom:1.6cqw;border-bottom:1px dashed rgba(27,24,19,.34)"><b style="font-family:'Montagu Slab',Georgia,serif;width:6cqw;flex:none">FD</b><span>Found — Treg found them; the style was learned.</span></div>
+                <div style="display:flex;gap:3cqw;color:#3F6EA5"><b style="font-family:'Montagu Slab',Georgia,serif;width:6cqw;flex:none">PG</b><span>Pencilled in — the most probable address, unverified.</span></div>
+              </div>
+              <div style="margin-top:auto;display:flex;align-items:baseline;gap:2cqw;font:400 max(8px,2.2cqw)/1 'Montagu Slab',Georgia,serif;color:#38342C"><span style="white-space:nowrap">This directory belongs to</span><span style="flex:1;border-bottom:1px solid #1B1813;font:400 max(11px,3.6cqw)/1 PicNic,cursive;color:#3F6EA5;padding-left:2cqw">my own machine</span></div>
+            </div>
+            <div data-shade-b="" style="position:absolute;inset:0;background:#141210;opacity:.45;pointer-events:none"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+        <div data-hint="" style="position:absolute;left:0;right:0;bottom:22px;display:flex;flex-direction:column;align-items:center;gap:12px">
+      <div style="display:flex;gap:10px 18px;flex-wrap:wrap;justify-content:center;align-items:center">
+        <button type="button" onClick="{{ copyPrompt }}" style="all:unset;cursor:pointer;white-space:nowrap;font:700 12.5px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em;background:#1B1813;color:#FBFAF6;padding:12px 16px" style-hover="background:#38342C">{{ copyLbl.board }}</button>
+        <button type="button" onClick="{{ goDocs }}" style="all:unset;cursor:pointer;font:400 14px/1 'Montagu Slab',Georgia,serif;text-decoration:underline;text-underline-offset:.2em">Read the docs ↓</button>
+      </div>
+      <div style="font:400 11px/1.3 'Montagu Slab',Georgia,serif;letter-spacing:.14em;text-transform:uppercase;color:#6B655A;color:#38342C">{{ hintText }} ↓</div>
+    </div>
+  </div>
+</section>
+
+<div data-after-hero="">
+
+<section id="setup" data-sec="" data-folio="p. 2" data-screen-label="Set up" style="background:#E7E0D0;padding:clamp(40px,5vw,72px) clamp(12px,3vw,40px) 12px">
+<div style="max-width:1180px;margin:0 auto;background:#FBFAF6;padding:clamp(20px,3vw,40px) clamp(18px,3.4vw,48px) 26px;box-sizing:border-box">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:1px solid #1B1813;padding-bottom:7px;font:700 12px/1 'Montagu Slab',Georgia,serif;letter-spacing:.06em;text-transform:uppercase"><span>Set up</span><span style="font-weight:400;color:#6B655A">Bucket.io directory</span><span>2</span></div>
+<div data-reveal="" style="margin:24px 0 16px;background:#1B1813;color:#FBFAF6;padding:9px 12px 8px;font:400 clamp(22px,2.4vw,32px)/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em">Set up with your coding agent</div>
+<p style="margin:0 0 18px;max-width:62ch;font:400 17px/1.5 'Montagu Slab',Georgia,serif;color:#38342C">Open any coding agent and paste the line below. It reads the setup guide and walks you through installing BucketIO, adding your Treg key, and placing a first call.</p>
+<div style="display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline;margin-bottom:16px;font:400 15px/1.3 'Montagu Slab',Georgia,serif"><span style="font:400 11px/1.3 'Montagu Slab',Georgia,serif;letter-spacing:.14em;text-transform:uppercase;color:#6B655A">Works with</span><span>Codex</span><span>·</span><span>Claude Code</span><span>·</span><span>Cursor</span><span>·</span><span>OpenCode</span><span>·</span><span>Gemini CLI</span></div>
+<div style="display:flex;align-items:center;gap:12px;border:1.5px solid #1B1813;background:#FBFAF6;padding:10px 12px"><code style="flex:1;min-width:0;overflow-wrap:anywhere;font:400 14px/1.4 'Montagu Slab',Georgia,serif;color:#1B1813">$ {{ agentPrompt }}</code><button type="button" onClick="{{ copyPrompt }}" style="all:unset;cursor:pointer;white-space:nowrap;font:700 12.5px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em;border-left:1px solid rgba(27,24,19,.25);padding-left:12px;color:#C2412A">{{ copyLbl.prompt }}</button></div>
+<div data-reveal="" style="margin-top:22px;border-top:3px double #1B1813;padding-top:14px;display:grid;gap:4px;font:400 14.5px/1.5 'Montagu Slab',Georgia,serif;max-width:720px">
+<div style="font-weight:700">$ {{ askCommand }}</div>
+<div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px"><span>› 01 In the bucket</span><span style="flex:1 1 16px;min-width:16px;border-bottom:1px dotted #6B655A;transform:translateY(-3px)"></span><span style="margin-left:auto;white-space:nowrap">no</span></div>
+<div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px"><span>› 02 Company format known</span><span style="flex:1 1 16px;min-width:16px;border-bottom:1px dotted #6B655A;transform:translateY(-3px)"></span><span style="margin-left:auto;white-space:nowrap">first.last@</span></div>
+<div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px"><span>· built iris.calloway@meridianfreight.com</span><span style="flex:1 1 16px;min-width:16px;border-bottom:1px dotted #6B655A;transform:translateY(-3px)"></span><span style="margin-left:auto;white-space:nowrap"></span></div>
+<div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px"><span>· Treg verify</span><span style="flex:1 1 16px;min-width:16px;border-bottom:1px dotted #6B655A;transform:translateY(-3px)"></span><span style="margin-left:auto;white-space:nowrap">deliverable · $0.0019</span></div>
+<div style="color:#C2412A">✓ listed as VF — $0.0029 less than a cold find</div>
+</div>
+<p style="margin:10px 0 0;font:400 12.5px/1.4 'Montagu Slab',Georgia,serif;color:#6B655A">Illustrative output — the setup line and a sample call.</p>
+<div style="margin-top:26px;text-align:center;font:400 12px/1 'Montagu Slab',Georgia,serif;color:#6B655A">— 2 —</div>
+</div>
+</section>
+<section id="features" data-sec="" data-folio="pp. 3–5" data-screen-label="What it does" style="background:#E7E0D0;padding:12px clamp(12px,3vw,40px)">
+<div style="max-width:1180px;margin:0 auto;background:#FBFAF6;padding:clamp(20px,3vw,40px) clamp(18px,3.4vw,48px) 26px;box-sizing:border-box">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:1px solid #1B1813;padding-bottom:7px;font:700 12px/1 'Montagu Slab',Georgia,serif;letter-spacing:.06em;text-transform:uppercase"><span>What it does</span><span style="font-weight:400;color:#6B655A">Bucket.io directory</span><span>3–5</span></div>
+<div data-reveal="" style="margin:24px 0 16px;background:#1B1813;color:#FBFAF6;padding:9px 12px 8px;font:400 clamp(22px,2.4vw,32px)/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em">What it does</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:32px 40px">
+<div data-reveal="" style="border-top:1.5px solid #1B1813;padding-top:12px;display:flex;flex-direction:column;gap:10px">
+<div style="font:400 11px/1.3 'Montagu Slab',Georgia,serif;letter-spacing:.14em;text-transform:uppercase;color:#6B655A"><span style="color:#C2412A;font-weight:700">01</span> / In the bucket · free</div>
+<div style="font:400 clamp(22px,2vw,28px)/1.05 'Montagu Slab',Georgia,serif;letter-spacing:-.015em">Answer from your own pages</div>
+<p style="margin:0;font:400 15.5px/1.5 'Montagu Slab',Georgia,serif;color:#38342C">If the person is already listed, the answer comes straight from the SQLite file on your machine. Nothing is sent, nothing is charged.</p>
+<div style="border:1px solid rgba(27,24,19,.3);background:#F1ECE0;padding:10px 12px;font:400 13px/1.45 'Montagu Slab',Georgia,serif"><div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px"><span><b>OKAFOR</b> Adaeze</span><span style="flex:1 1 16px;min-width:16px;border-bottom:1px dotted #6B655A;transform:translateY(-3px)"></span><span style="margin-left:auto;white-space:nowrap">adaeze.okafor@meridianfreight.com</span></div></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:700 14px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase">$0.00 per call</span><button type="button" onClick="{{ goWhite }}" style="all:unset;cursor:pointer;font:400 14px/1 'Montagu Slab',Georgia,serif;text-decoration:underline;text-underline-offset:.2em;text-decoration-color:#C2412A">See the white pages ↓</button></div>
+</div>
+<div data-reveal="" style="border-top:1.5px solid #1B1813;padding-top:12px;display:flex;flex-direction:column;gap:10px">
+<div style="font:400 11px/1.3 'Montagu Slab',Georgia,serif;letter-spacing:.14em;text-transform:uppercase;color:#6B655A"><span style="color:#C2412A;font-weight:700">02</span> / Format known · verify</div>
+<div style="font:400 clamp(22px,2vw,28px)/1.05 'Montagu Slab',Georgia,serif;letter-spacing:-.015em">Write the address, then only check it</div>
+<p style="margin:0;font:400 15.5px/1.5 'Montagu Slab',Georgia,serif;color:#38342C">When the company’s format is on file, BucketIO builds the address itself and asks Treg only whether it can be delivered.</p>
+<div style="border:1px solid rgba(27,24,19,.3);background:#F1ECE0;padding:10px 12px;font:400 13px/1.45 'Montagu Slab',Georgia,serif"><div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px"><span>meridianfreight.com</span><span style="flex:1 1 16px;min-width:16px;border-bottom:1px dotted #6B655A;transform:translateY(-3px)"></span><span style="margin-left:auto;white-space:nowrap">first.last@</span></div><div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px"><span>Treg verify</span><span style="flex:1 1 16px;min-width:16px;border-bottom:1px dotted #6B655A;transform:translateY(-3px)"></span><span style="margin-left:auto;white-space:nowrap">deliverable</span></div></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:700 14px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase">From $0.0019</span><button type="button" onClick="{{ goYellow }}" style="all:unset;cursor:pointer;font:400 14px/1 'Montagu Slab',Georgia,serif;text-decoration:underline;text-underline-offset:.2em;text-decoration-color:#C2412A">See the yellow pages ↓</button></div>
+</div>
+<div data-reveal="" style="border-top:1.5px solid #1B1813;padding-top:12px;display:flex;flex-direction:column;gap:10px">
+<div style="font:400 11px/1.3 'Montagu Slab',Georgia,serif;letter-spacing:.14em;text-transform:uppercase;color:#6B655A"><span style="color:#C2412A;font-weight:700">03</span> / A stranger · find &amp; learn</div>
+<div style="font:400 clamp(22px,2vw,28px)/1.05 'Montagu Slab',Georgia,serif;letter-spacing:-.015em">Find once, learn the company</div>
+<p style="margin:0;font:400 15.5px/1.5 'Montagu Slab',Georgia,serif;color:#38342C">For a company it has never seen, Treg finds the person. The answer is kept and the format learned, so the next person there is a check.</p>
+<div style="border:1px solid rgba(27,24,19,.3);background:#F1ECE0;padding:10px 12px;font:400 13px/1.45 'Montagu Slab',Georgia,serif"><div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px"><span>orchardbank.com</span><span style="flex:1 1 16px;min-width:16px;border-bottom:1px dotted #6B655A;transform:translateY(-3px)"></span><span style="margin-left:auto;white-space:nowrap">first.last@ learned</span></div></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:700 14px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase">From $0.00483</span><button type="button" onClick="{{ goAssist }}" style="all:unset;cursor:pointer;font:400 14px/1 'Montagu Slab',Georgia,serif;text-decoration:underline;text-underline-offset:.2em;text-decoration-color:#C2412A">Place a call ↓</button></div>
+</div>
+<div data-reveal="" style="border-top:1.5px solid #1B1813;padding-top:12px;display:flex;flex-direction:column;gap:10px">
+<div style="font:400 11px/1.3 'Montagu Slab',Georgia,serif;letter-spacing:.14em;text-transform:uppercase;color:#6B655A"><span style="color:#C2412A;font-weight:700">04</span> / Nobody found · pencil</div>
+<div style="font:400 clamp(22px,2vw,28px)/1.05 'Montagu Slab',Georgia,serif;letter-spacing:-.015em">Pencil in the likeliest address</div>
+<p style="margin:0;font:400 15.5px/1.5 'Montagu Slab',Georgia,serif;color:#38342C">When Treg finds no one, BucketIO writes down the most probable address from the formats it has learned, marked unverified.</p>
+<div style="border:1px solid rgba(27,24,19,.3);background:#F1ECE0;padding:10px 12px;font:400 13px/1.45 'Montagu Slab',Georgia,serif"><div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px"><span>Albescu Odette</span><span style="flex:1 1 16px;min-width:16px;border-bottom:1px dotted #6B655A;transform:translateY(-3px)"></span><span style="margin-left:auto;white-space:nowrap"><span style="font-family:PicNic,cursive;color:#3F6EA5">odette.albescu@foxglovecartography.com</span></span></div></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:700 14px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase">$0.00 · unverified</span><button type="button" onClick="{{ goAssist }}" style="all:unset;cursor:pointer;font:400 14px/1 'Montagu Slab',Georgia,serif;text-decoration:underline;text-underline-offset:.2em;text-decoration-color:#C2412A">Try the pencil ↓</button></div>
+</div>
+</div>
+<div data-reveal="" style="margin-top:36px;border-top:4px solid #1B1813;padding-top:14px;display:flex;flex-wrap:wrap;gap:24px 48px;align-items:flex-start">
+<div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:10px">
+<div style="font:400 11px/1.3 'Montagu Slab',Georgia,serif;letter-spacing:.14em;text-transform:uppercase;color:#6B655A"><span style="color:#C2412A;font-weight:700">05</span> / The operator · scores only</div>
+<div style="font:400 clamp(22px,2vw,28px)/1.05 'Montagu Slab',Georgia,serif;letter-spacing:-.015em">Laya breaks ties. It never dials.</div>
+<p style="margin:0;font:400 15.5px/1.5 'Montagu Slab',Georgia,serif;color:#38342C">Laya (convaiinnovations/laya) scores the candidates when a company’s format is unsure, and breaks the tie. The pattern cache does most of the saving. Laya starts in shadow, where its picks are only logged, and turns active once the log shows it is right.</p>
+</div>
+<div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:12px">
+<div style="font:400 11px/1.3 'Montagu Slab',Georgia,serif;letter-spacing:.14em;text-transform:uppercase;color:#6B655A;color:#38342C">Laya is set to</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;border:2px solid #1B1813">
+<button type="button" onClick="{{ setShadow }}" style="all:unset;cursor:pointer;text-align:center;padding:14px 10px;font:700 18px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;background:{{ sw.shadowBg }};color:{{ sw.shadowFg }};transition:background 320ms,color 320ms">Shadow</button>
+<button type="button" onClick="{{ setActive }}" style="all:unset;cursor:pointer;text-align:center;padding:14px 10px;font:700 18px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;border-left:2px solid #1B1813;background:{{ sw.activeBg }};color:{{ sw.activeFg }};transition:background 320ms,color 320ms">Active</button>
+</div>
+<div style="font:400 13px/1.4 'Montagu Slab',Georgia,serif;color:#38342C">{{ grayStats }}</div>
+</div>
+</div>
+<p style="margin:26px 0 0;max-width:80ch;font:400 12.5px/1.55 'Montagu Slab',Georgia,serif;color:#6B655A">Treg rates are the lowest listed per job on treg.to as of September 2026. Misses on most finders are not charged. With your own provider keys, your own rates apply.</p>
+<div style="margin-top:26px;text-align:center;font:400 12px/1 'Montagu Slab',Georgia,serif;color:#6B655A">— 3 · 5 —</div>
+</div>
+</section>
+
+
+
+<section id="white" data-sec="" data-folio="pp. 6–7" data-screen-label="White Pages" style="background:#FBFAF6;padding:clamp(40px,5vw,64px) clamp(16px,4vw,56px) clamp(48px,6vw,80px);border-top:12px solid #E7E0D0">
+  <div style="max-width:1440px;margin:0 auto">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:1px solid #1B1813;padding-bottom:7px;font:700 12px/1 'Montagu Slab',Georgia,serif;letter-spacing:.06em;text-transform:uppercase"><span>Abernathy — Zielinski</span><span style="font-weight:400;color:#6B655A">White pages</span><span>6–7</span></div>
+<div data-reveal="" style="margin:24px 0 16px;background:#1B1813;color:#FBFAF6;padding:9px 12px 8px;font:400 clamp(22px,2.4vw,32px)/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em">White pages</div>
+<p style="margin:0 0 18px;max-width:70ch;font:400 15.5px/1.5 'Montagu Slab',Georgia,serif;color:#38342C">Everyone in the bucket, alphabetically — {{ peopleCount }} listings. After each address: <b>FD</b> found by Treg, <b>VF</b> verified, <span style="color:#3F6EA5"><b>PG</b> pencilled in</span>.</p>
+<div style="display:flex;flex-wrap:wrap;border-top:1.5px solid #1B1813;border-bottom:1.5px solid #1B1813;margin-top:4px">
+      <sc-for list="{{ az }}" as="l" hint-placeholder-count="26">
+        <button type="button" onClick="{{ l.go }}" style="all:unset;cursor:pointer;flex:1 0 26px;text-align:center;padding:9px 0;font:400 15px/1 'Montagu Slab',Georgia,serif;color:{{ l.color }}" style-hover="color:#C2412A">{{ l.letter }}</button>
+      </sc-for>
+    </div>
+    <div style="position:relative;display:flex;flex-wrap:wrap;border-bottom:4px solid #1B1813">
+      <sc-for list="{{ wpPages }}" as="pg" hint-placeholder-count="2">
+        <div style="flex:1 1 440px;min-width:0;padding:16px clamp(10px,2vw,32px) 28px;box-sizing:border-box">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:1px solid #1B1813;padding-bottom:8px;margin-bottom:6px">
+            <span style="font:400 13px/1 'Montagu Slab',Georgia,serif;letter-spacing:.04em;text-transform:uppercase">{{ pg.guide }}</span>
+            <span style="font:400 10px/1 'Montagu Slab',Georgia,serif;letter-spacing:.14em">{{ pg.folio }}</span>
+          </div>
+          <div style="columns:2 260px;column-gap:26px;column-rule:1px solid rgba(27,24,19,.16)">
+            <sc-for list="{{ pg.groups }}" as="g" hint-placeholder-count="6">
+              <div id="{{ g.anchor }}" style="display:flex;align-items:flex-end;gap:8px;break-inside:avoid;break-after:avoid;margin:12px 0 4px;scroll-margin-top:80px">
+                <span style="font:400 30px/.8 'Montagu Slab',Georgia,serif;letter-spacing:-.025em">{{ g.letter }}</span>
+                <span style="flex:1;border-bottom:1.5px solid #1B1813"></span>
+              </div>
+              <sc-for list="{{ g.people }}" as="p" hint-placeholder-count="3">
+                <div data-new="{{ p.newFlag }}" style="break-inside:avoid;padding:2px 3px 3px;font:400 12.5px/1.3 'Montagu Slab',Georgia,serif;letter-spacing:-.005em">
+                  <div><span style="font-weight:700;text-transform:uppercase;letter-spacing:.01em">{{ p.last }}</span> {{ p.first }} <span style="color:#6B655A;font-size:11.5px">{{ p.coName }}</span></div>
+                  <div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:5px;padding-left:12px">
+                    <span style="flex:1 1 12px;min-width:12px;border-bottom:1px dotted #9C9587;transform:translateY(-3px)"></span>
+                    <span style="flex:none;margin-left:auto;white-space:nowrap;font-family:{{ p.emailFont }};font-size:{{ p.emailSize }};color:{{ p.emailColor }}">{{ p.email }}</span>
+                    <span style="flex:none;width:18px;text-align:right;font:700 9px/1 'Montagu Slab',Georgia,serif;color:{{ p.codeColor }}">{{ p.code }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </sc-for>
+            <sc-if value="{{ pg.ad }}">
+              <div style="break-inside:avoid;border:2px solid #1B1813;padding:12px 14px;margin-top:16px">
+                <div style="font:400 22px/.9 'Montagu Slab',Georgia,serif;letter-spacing:-.03em;text-transform:uppercase">Not listed?</div>
+                <div style="font:400 13px/1.35 'Montagu Slab',Georgia,serif;margin-top:6px;color:#38342C">Dial 4-1-1. Directory Assistance places the call and writes the answer in these pages.</div>
+                <button type="button" onClick="{{ goAssist }}" style="all:unset;cursor:pointer;margin-top:10px;font:700 11px/1 'Montagu Slab',Georgia,serif;letter-spacing:.14em;text-transform:uppercase;color:#C2412A">pp. 10–11 →</button>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<section id="yellow" data-sec="" data-folio="pp. 8–9" data-screen-label="Yellow Pages" style="background:#EDD351;padding:clamp(40px,5vw,64px) clamp(16px,4vw,56px) clamp(48px,6vw,80px)">
+<div style="max-width:1440px;margin:0 auto">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:1px solid #1B1813;padding-bottom:7px;font:700 12px/1 'Montagu Slab',Georgia,serif;letter-spacing:.06em;text-transform:uppercase"><span>Air charter — Software</span><span style="font-weight:400;color:#6B655A">Yellow pages</span><span>8–9</span></div>
+<div data-reveal="" style="margin:22px 0 10px;font:400 clamp(44px,6vw,88px)/.9 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:-.02em">Yellow pages</div>
+<p style="margin:0 0 20px;max-width:64ch;font:400 16px/1.5 'Montagu Slab',Georgia,serif;color:#1B1813">Companies in the bucket, by trade, with the format of their addresses. One find teaches BucketIO the format; everyone after is a $0.0019 check instead of a $0.00483 find.</p>
+<div style="columns:3 280px;column-gap:30px;column-rule:1px solid rgba(27,24,19,.35);border-top:3px solid #1B1813;padding-top:6px">
+<div style="break-inside:avoid;border:3px solid #1B1813;padding:14px 16px;margin:10px 0 14px">
+<div style="font:700 11px/1 'Montagu Slab',Georgia,serif;letter-spacing:.12em;text-transform:uppercase">The usual format</div>
+<div style="margin-top:8px;font:700 30px/1 'Montagu Slab',Georgia,serif;letter-spacing:-.02em;overflow-wrap:anywhere">{{ topLabel }}</div>
+<p style="margin:8px 0 0;font:400 14px/1.4 'Montagu Slab',Georgia,serif">Used by {{ topCount }} of {{ coCount }} companies in this directory. Learned once; checked ever after.</p></div>
+<sc-for list="{{ trades }}" as="t" hint-placeholder-count="6">
+<div style="break-inside:avoid;break-after:avoid;background:#1B1813;color:#EDD351;padding:5px 8px 4px;margin:14px 0 3px;font:700 13px/1.15 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.03em">{{ t.name }}</div>
+<div style="break-after:avoid;font:400 12.5px/1.3 'Montagu Slab',Georgia,serif;color:#38342C;margin-bottom:4px">See also {{ t.see }}</div>
+<sc-for list="{{ t.cos }}" as="c" hint-placeholder-count="3">
+<div data-new="{{ c.newFlag }}" style="break-inside:avoid;padding:5px 2px 6px;border-bottom:1px dotted rgba(27,24,19,.45)">
+<div style="font:700 14px/1.15 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.01em">{{ c.name }}</div>
+<div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px;font:400 13px/1.35 'Montagu Slab',Georgia,serif"><span>{{ c.domain }}</span><span style="flex:1 1 12px;min-width:12px;border-bottom:1px dotted #1B1813;transform:translateY(-3px)"></span><span style="margin-left:auto;font-weight:700;white-space:nowrap">{{ c.label }}</span></div>
+<div style="font:400 12px/1.3 'Montagu Slab',Georgia,serif;color:{{ c.confColor }}">{{ c.seenText }} · {{ c.confText }}</div>
+</div>
+</sc-for>
+</sc-for>
+<div style="break-inside:avoid;border:3px solid #1B1813;background:#1B1813;color:#EDD351;padding:14px 16px;margin:16px 0 14px">
+<div style="font:700 26px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase">Under .80?</div>
+<p style="margin:8px 0 0;font:400 14px/1.4 'Montagu Slab',Georgia,serif">When a company’s format is unsure, Laya weighs the candidates before Treg is asked. {{ grayCount }} companies are unsure today.</p></div>
+<div style="break-inside:avoid;padding-top:4px">
+<div style="font:700 13px/1.2 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px">Formats, by count</div>
+<sc-for list="{{ dist }}" as="d" hint-placeholder-count="6"><div style="display:flex;align-items:baseline;gap:6px;padding:3px 0;font:400 13px/1.2 'Montagu Slab',Georgia,serif"><span>{{ d.label }}</span><span style="flex:1;border-bottom:1px dotted #1B1813;transform:translateY(-3px)"></span><span style="font-weight:700">{{ d.n }}</span></div></sc-for>
+</div>
+</div>
+<div style="margin-top:26px;text-align:center;font:400 12px/1 'Montagu Slab',Georgia,serif;color:#6B655A">— 8 · 9 —</div>
+</div>
+</section>
+
+<section id="assist" data-sec="" data-folio="pp. 10–11" data-screen-label="Directory Assistance" style="background:#F1ECE0;padding:clamp(40px,5vw,64px) 0 clamp(56px,7vw,96px)">
+    <div style="max-width:1440px;margin:0 auto;padding:0 clamp(16px,4vw,56px)">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:1px solid #1B1813;padding-bottom:7px;font:700 12px/1 'Montagu Slab',Georgia,serif;letter-spacing:.06em;text-transform:uppercase"><span>Directory assistance</span><span style="font-weight:400;color:#6B655A">Bucket.io directory</span><span>10–11</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:20px 56px;align-items:flex-end;justify-content:space-between;margin-top:28px">
+      <h2 data-reveal="" style="margin:0;font:400 clamp(34px,4.4vw,64px)/.9 'Montagu Slab',Georgia,serif;letter-spacing:-.025em;text-transform:uppercase">Place<br>a call</h2>
+      <p data-reveal="" style="flex:0 1 460px;margin:0;font:400 clamp(17px,1.4vw,20px)/1.28 'Montagu Slab',Georgia,serif;letter-spacing:-.02em">Type a name and a company. The bucket answers first; Treg only when it must. Every call is simulated in the browser against this directory, and it remembers.</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:40px clamp(28px,4vw,64px);margin-top:44px;align-items:flex-start">
+      <div style="flex:1 1 340px;min-width:0;display:flex;flex-direction:column;gap:22px">
+        <label style="display:flex;flex-direction:column;gap:8px">
+          <span style="font:400 10.5px/1 'Montagu Slab',Georgia,serif;letter-spacing:.16em;text-transform:uppercase;color:#6B655A">Party’s name</span>
+          <input value="{{ name }}" onChange="{{ onName }}" onKeyDown="{{ onKey }}" placeholder="Iris Calloway" autocomplete="off" style="all:unset;display:block;width:100%;box-sizing:border-box;border-bottom:2px solid #1B1813;padding:4px 0 8px;font:400 clamp(26px,2.6vw,36px)/1.1 'Montagu Slab',Georgia,serif;letter-spacing:-.03em;text-transform:uppercase;color:#1B1813">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:8px">
+          <span style="font:400 10.5px/1 'Montagu Slab',Georgia,serif;letter-spacing:.16em;text-transform:uppercase;color:#6B655A">Company</span>
+          <input value="{{ company }}" onChange="{{ onCo }}" onKeyDown="{{ onKey }}" placeholder="Meridian Freight" autocomplete="off" style="all:unset;display:block;width:100%;box-sizing:border-box;border-bottom:2px solid #1B1813;padding:4px 0 8px;font:400 clamp(26px,2.6vw,36px)/1.1 'Montagu Slab',Georgia,serif;letter-spacing:-.03em;text-transform:uppercase;color:#1B1813">
+        </label>
+        <sc-if value="{{ hasErr }}"><div style="font:400 13px/1.3 'Montagu Slab',Georgia,serif;color:#A6321F">{{ err }}</div></sc-if>
+        <div>
+          <button type="button" onClick="{{ onPlace }}" style="all:unset;cursor:pointer;background:#1B1813;color:#FBFAF6;padding:15px 22px;font:400 14px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.01em;transition:background 320ms" style-hover="background:#38342C">Place the call →</button>
+        </div>
+        <div style="margin-top:10px">
+          <div style="font:400 10.5px/1 'Montagu Slab',Georgia,serif;letter-spacing:.16em;text-transform:uppercase;color:#6B655A;margin-bottom:8px">Or try these, in order</div>
+          <div style="border-top:1.5px solid #1B1813">
+            <sc-for list="{{ presets }}" as="pr" hint-placeholder-count="6">
+              <button type="button" onClick="{{ pr.go }}" style="all:unset;cursor:pointer;display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:baseline;width:100%;box-sizing:border-box;padding:10px 0;border-bottom:1px solid rgba(27,24,19,.16)" style-hover="color:#C2412A">
+                <span style="font:700 11px/1 'Montagu Slab',Georgia,serif;color:#C2412A">{{ pr.n }}</span>
+                <span style="font:400 14px/1.2 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:-.01em">{{ pr.name }} <span style="font-weight:400;text-transform:none;color:#6B655A">· {{ pr.co }}</span></span>
+                <span style="font:400 10px/1.2 'Montagu Slab',Georgia,serif;letter-spacing:.08em;text-transform:uppercase;color:#6B655A;text-align:right">{{ pr.note }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1.5 1 460px;min-width:0;background:#FBFAF6;border-top:4px solid #1B1813;border-bottom:4px solid #1B1813;padding:18px clamp(14px,2vw,24px) 22px;box-sizing:border-box">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+          <span style="font:400 14px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase">Toll ticket No. {{ ticketNo }}</span>
+          <span style="font:400 10px/1 'Montagu Slab',Georgia,serif;letter-spacing:.14em;text-transform:uppercase;color:#6B655A">{{ when }} · Laya {{ modeLabel }}</span>
+        </div>
+        <div style="margin-top:16px;padding-bottom:14px;border-bottom:1.5px solid #1B1813">
+          <div style="font:400 clamp(24px,2.4vw,34px)/.95 'Montagu Slab',Georgia,serif;letter-spacing:-.035em;text-transform:uppercase;overflow-wrap:anywhere">{{ party }}</div>
+          <div style="margin-top:6px;font:400 14px/1.2 'Montagu Slab',Georgia,serif;color:#6B655A">{{ partyCo }}</div>
+        </div>
+        <sc-for list="{{ rows }}" as="s" hint-placeholder-count="4">
+          <div data-row="{{ s.idx }}" style="display:grid;grid-template-columns:30px minmax(0,1fr) 84px;gap:10px;padding:12px 0;border-bottom:1px dashed rgba(27,24,19,.34)">
+            <span style="font:700 11px/1.3 'Montagu Slab',Georgia,serif;color:{{ s.noColor }}">{{ s.no }}</span>
+            <div style="min-width:0">
+              <div style="font:400 14px/1.15 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:-.01em;color:{{ s.qColor }}">{{ s.q }}</div>
+              <sc-if value="{{ s.shown }}">
+                <div style="margin-top:4px;font:400 14px/1.35 'Montagu Slab',Georgia,serif;color:{{ s.aColor }};overflow-wrap:anywhere">{{ s.a }}</div>
+                <sc-for list="{{ s.lines }}" as="ln">
+                  <div style="display:flex;justify-content:space-between;gap:12px;margin-top:4px;font:400 11px/1.4 'Montagu Slab',Georgia,serif;color:#6B655A"><span style="overflow-wrap:anywhere;min-width:0">{{ ln.t }}</span><span style="flex:none">{{ ln.c }}</span></div>
+                </sc-for>
+                <sc-if value="{{ s.hasCands }}">
+                  <div style="margin-top:10px;border:1px solid rgba(27,24,19,.34);padding:8px 10px">
+                    <div style="display:grid;grid-template-columns:minmax(0,1fr) 44px 44px;gap:8px;font:700 9.5px/1.4 'Montagu Slab',Georgia,serif;letter-spacing:.12em;text-transform:uppercase;color:#6B655A;border-bottom:1px solid rgba(27,24,19,.16);padding-bottom:4px;margin-bottom:4px"><span>Candidate</span><span style="text-align:right">Rules</span><span style="text-align:right">Laya</span></div>
+                    <sc-for list="{{ s.cands }}" as="cd">
+                      <div style="display:grid;grid-template-columns:minmax(0,1fr) 44px 44px;gap:8px;font:400 12px/1.55 'Montagu Slab',Georgia,serif;color:{{ cd.color }}"><span style="overflow-wrap:anywhere;min-width:0">{{ cd.email }} <b style="color:#C2412A">{{ cd.mark }}</b></span><span style="text-align:right;font-weight:{{ cd.rw }}">{{ cd.rules }}</span><span style="text-align:right;font-weight:{{ cd.lw }}">{{ cd.laya }}</span></div>
+                    </sc-for>
+                    <div style="margin-top:6px;font:400 10px/1.4 'Montagu Slab',Georgia,serif;letter-spacing:.06em;color:#6B655A">{{ s.candNote }}</div>
+                  </div>
+                </sc-if>
+              </sc-if>
+            </div>
+            <span style="text-align:right;font:700 13px/1.3 'Montagu Slab',Georgia,serif;color:{{ s.costColor }}">{{ s.costText }}</span>
+          </div>
+        </sc-for>
+        <sc-if value="{{ done }}">
+          <div style="border-top:3px double #1B1813;margin-top:2px;padding-top:12px;display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:baseline">
+            <span style="font:400 16px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase">Charged</span>
+            <span style="font:700 20px/1 'Montagu Slab',Georgia,serif">{{ totalText }}</span>
+            <span style="font:400 10.5px/1.3 'Montagu Slab',Georgia,serif;letter-spacing:.08em;text-transform:uppercase;color:#6B655A">A cold find would have cost</span>
+            <span style="font:400 12px/1 'Montagu Slab',Georgia,serif;color:#6B655A">$0.00483</span>
+          </div>
+          <div style="margin-top:18px;padding-top:12px;border-top:1px solid #1B1813;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between">
+            <div style="flex:1 1 260px;min-width:0">
+              <div style="font:400 10px/1 'Montagu Slab',Georgia,serif;letter-spacing:.16em;text-transform:uppercase;color:#6B655A;margin-bottom:6px">Listed as</div>
+              <div style="font:400 13px/1.3 'Montagu Slab',Georgia,serif"><b style="text-transform:uppercase">{{ res.last }}</b> {{ res.first }} <span style="color:#6B655A">{{ res.coName }}</span></div>
+              <div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:5px;padding-left:12px"><span style="flex:1;min-width:12px;border-bottom:1px dotted #9C9587;transform:translateY(-3px)"></span><span style="flex:none;margin-left:auto;white-space:nowrap;font-family:{{ res.emailFont }};font-size:{{ res.emailSize }};color:{{ res.emailColor }}">{{ res.email }}</span><b style="font:700 9px/1 'Montagu Slab',Georgia,serif;color:{{ res.codeColor }}">{{ res.code }}</b></div>
+            </div>
+            <div data-stamp="" style="border:2.5px solid #C2412A;color:#C2412A;padding:7px 11px;font:700 11.5px/1.1 'Montagu Slab',Georgia,serif;letter-spacing:.12em;text-transform:uppercase;transform:rotate(-6deg)">{{ stamp }}</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ idle }}">
+          <div style="margin-top:14px;font:400 11px/1.4 'Montagu Slab',Georgia,serif;letter-spacing:.08em;color:#6B655A">Nothing on the line yet. Place a call, or pick one on the left.</div>
+        </sc-if>
+      </div>
+    </div>
+
+    <div data-reveal="" style="margin-top:56px;border-top:2px solid #1B1813;padding-top:14px">
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline">
+        <span style="font:400 clamp(20px,1.8vw,26px)/1 'Montagu Slab',Georgia,serif;letter-spacing:-.03em;text-transform:uppercase">Statement of charges</span>
+        <span style="font:400 10.5px/1 'Montagu Slab',Georgia,serif;letter-spacing:.16em;text-transform:uppercase;color:#6B655A">This session</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:14px;border-top:1px solid rgba(27,24,19,.16)">
+        <sc-for list="{{ statement }}" as="st" hint-placeholder-count="8">
+          <div style="padding:12px 12px 14px 0;border-bottom:1px solid rgba(27,24,19,.16)">
+            <div style="font:400 10px/1.3 'Montagu Slab',Georgia,serif;letter-spacing:.12em;text-transform:uppercase;color:#6B655A">{{ st.label }}</div>
+            <div style="margin-top:6px;font:700 18px/1.1 'Montagu Slab',Georgia,serif">{{ st.v }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="docs" data-sec="" data-folio="p. 12" data-screen-label="Docs" style="background:#E7E0D0;padding:clamp(40px,5vw,72px) clamp(12px,3vw,40px) 12px">
+<div style="max-width:1180px;margin:0 auto;background:#FBFAF6;padding:clamp(20px,3vw,40px) clamp(18px,3.4vw,48px) 26px;box-sizing:border-box">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:1px solid #1B1813;padding-bottom:7px;font:700 12px/1 'Montagu Slab',Georgia,serif;letter-spacing:.06em;text-transform:uppercase"><span>Docs</span><span style="font-weight:400;color:#6B655A">Bucket.io directory</span><span>12</span></div>
+<div data-reveal="" style="margin:24px 0 16px;background:#1B1813;color:#FBFAF6;padding:9px 12px 8px;font:400 clamp(22px,2.4vw,32px)/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em">Set up in three steps</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:28px 36px">
+<div data-reveal="" style="display:flex;flex-direction:column;gap:10px"><div style="font:400 24px/1 'Montagu Slab',Georgia,serif"><span style="color:#C2412A">01</span> Install</div><p style="margin:0;font:400 15px/1.5 'Montagu Slab',Georgia,serif;color:#38342C">Install BucketIO. It creates one SQLite file, the bucket, in your home folder.</p><div style="display:flex;align-items:center;gap:12px;border:1.5px solid #1B1813;background:#FBFAF6;padding:10px 12px"><code style="flex:1;min-width:0;overflow-wrap:anywhere;font:400 14px/1.4 'Montagu Slab',Georgia,serif;color:#1B1813">$ {{ installCommand }}</code><button type="button" onClick="{{ copyInstall }}" style="all:unset;cursor:pointer;white-space:nowrap;font:700 12.5px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em;border-left:1px solid rgba(27,24,19,.25);padding-left:12px;color:#C2412A">{{ copyLbl.c1 }}</button></div></div>
+<div data-reveal="" style="display:flex;flex-direction:column;gap:10px"><div style="font:400 24px/1 'Montagu Slab',Georgia,serif"><span style="color:#C2412A">02</span> Connect Treg</div><p style="margin:0;font:400 15px/1.5 'Montagu Slab',Georgia,serif;color:#38342C">Add your Treg key. Your own provider keys and rates apply.</p><div style="display:flex;align-items:center;gap:12px;border:1.5px solid #1B1813;background:#FBFAF6;padding:10px 12px"><code style="flex:1;min-width:0;overflow-wrap:anywhere;font:400 14px/1.4 'Montagu Slab',Georgia,serif;color:#1B1813">$ {{ connectCommand }}</code><button type="button" onClick="{{ copyConnect }}" style="all:unset;cursor:pointer;white-space:nowrap;font:700 12.5px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em;border-left:1px solid rgba(27,24,19,.25);padding-left:12px;color:#C2412A">{{ copyLbl.c2 }}</button></div></div>
+<div data-reveal="" style="display:flex;flex-direction:column;gap:10px"><div style="font:400 24px/1 'Montagu Slab',Georgia,serif"><span style="color:#C2412A">03</span> Place a call</div><p style="margin:0;font:400 15px/1.5 'Montagu Slab',Georgia,serif;color:#38342C">Ask for anyone by name and company, or let your agent do it.</p><div style="display:flex;align-items:center;gap:12px;border:1.5px solid #1B1813;background:#FBFAF6;padding:10px 12px"><code style="flex:1;min-width:0;overflow-wrap:anywhere;font:400 14px/1.4 'Montagu Slab',Georgia,serif;color:#1B1813">$ {{ askCommand }}</code><button type="button" onClick="{{ copyAsk }}" style="all:unset;cursor:pointer;white-space:nowrap;font:700 12.5px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em;border-left:1px solid rgba(27,24,19,.25);padding-left:12px;color:#C2412A">{{ copyLbl.c3 }}</button></div></div>
+</div>
+<div data-reveal="" style="margin-top:32px;display:flex;flex-wrap:wrap;gap:24px 48px;border-top:4px solid #1B1813;padding-top:14px">
+<div style="flex:1 1 360px;min-width:0"><div style="font:400 24px/1.1 'Montagu Slab',Georgia,serif">Privacy</div><p style="margin:8px 0 0;font:400 15.5px/1.5 'Montagu Slab',Georgia,serif;color:#38342C">The bucket stays on your machine. Only the name and company you ask about go to Treg, and only when the bucket can’t answer. <b>Laya scores; it never writes an address.</b></p></div>
+<div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;font:400 15px/1.3 'Montagu Slab',Georgia,serif">
+<div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px"><span>Agent runbook</span><span style="flex:1 1 16px;min-width:16px;border-bottom:1px dotted #6B655A;transform:translateY(-3px)"></span><span style="margin-left:auto;white-space:nowrap">{{ agentUrl }}</span></div>
+<a href="{{ repoUrl }}" target="_blank" rel="noopener" style="text-decoration:none;padding:6px 0"><div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px"><span>Source code</span><span style="flex:1 1 16px;min-width:16px;border-bottom:1px dotted #6B655A;transform:translateY(-3px)"></span><span style="margin-left:auto;white-space:nowrap">GitHub ↗</span></div></a>
+<a href="https://treg.to" target="_blank" rel="noopener" style="text-decoration:none;padding:6px 0"><div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px"><span>Treg</span><span style="flex:1 1 16px;min-width:16px;border-bottom:1px dotted #6B655A;transform:translateY(-3px)"></span><span style="margin-left:auto;white-space:nowrap">treg.to ↗</span></div></a>
+<div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px"><span>Operator model</span><span style="flex:1 1 16px;min-width:16px;border-bottom:1px dotted #6B655A;transform:translateY(-3px)"></span><span style="margin-left:auto;white-space:nowrap">convaiinnovations/laya</span></div>
+</div>
+</div>
+<div style="margin-top:26px;text-align:center;font:400 12px/1 'Montagu Slab',Georgia,serif;color:#6B655A">— 12 —</div>
+</div>
+</section>
+<section id="contact" data-sec="" data-folio="Back cover" data-screen-label="Contact" style="background:#E7E0D0;padding:12px clamp(12px,3vw,40px) clamp(40px,5vw,72px)">
+<div style="max-width:1180px;margin:0 auto;background:#FBFAF6;padding:clamp(20px,3vw,40px) clamp(18px,3.4vw,48px) 26px;box-sizing:border-box;display:flex;flex-wrap:wrap;gap:28px 48px;align-items:flex-start">
+<div style="flex:0 0 150px"><image-slot id="portrait" shape="rect" src="https://gws-for-dummies.vercel.app/assets/avatar.jpg" placeholder="Portrait" style="display:block;width:150px;height:188px"></image-slot></div>
+<div style="flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:12px">
+<div style="font:400 11px/1.3 'Montagu Slab',Georgia,serif;letter-spacing:.14em;text-transform:uppercase;color:#6B655A">Back cover · the publisher</div>
+<div data-reveal="" style="font:400 clamp(32px,4vw,56px)/.95 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:-.02em">Built by Abdullahi Abdi</div>
+<div style="font:400 15px/1.3 'Montagu Slab',Georgia,serif;color:#6B655A">Student · Computer scientist</div>
+<p style="margin:0;max-width:56ch;font:400 16px/1.5 'Montagu Slab',Georgia,serif;color:#38342C">Have a setup issue, an improvement, or a company format worth adding? I’d like to hear about it.</p>
+<div style="display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;margin-top:4px">
+<button type="button" onClick="{{ copyEmail }}" style="all:unset;cursor:pointer;white-space:nowrap;font:700 12.5px/1 'Montagu Slab',Georgia,serif;text-transform:uppercase;letter-spacing:.02em;background:#C2412A;color:#FBFAF6;padding:13px 16px" style-hover="background:#A6321F">{{ copyLbl.email }}</button>
+<a href="mailto:abdullahiabdi5600@gmail.com" style="font:400 15px/1 'Montagu Slab',Georgia,serif">abdullahiabdi5600@gmail.com</a>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px 20px;font:400 15px/1 'Montagu Slab',Georgia,serif"><a href="https://github.com/Mulla759" target="_blank" rel="noopener">GitHub ↗</a><a href="https://linkedin.com/in/abdull-abdi5" target="_blank" rel="noopener">LinkedIn ↗</a><a href="https://x.com/AAbdallahDev" target="_blank" rel="noopener">X ↗</a></div>
+</div>
+<div style="flex:1 1 100%;border-top:1.5px solid #1B1813;padding-top:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 20px;font:400 12.5px/1.4 'Montagu Slab',Georgia,serif;color:#6B655A"><span>Not affiliated with Treg. Printed on your own machine.</span><span>Set in Montagu Slab, Basteleur &amp; PicNic</span></div>
+</div>
+</section>
+
+
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;coverOpens&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;On scroll&quot;,&quot;On click&quot;],&quot;default&quot;:&quot;On scroll&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Book&quot;},&quot;smoothness&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0.08,&quot;min&quot;:0.03,&quot;max&quot;:0.2,&quot;step&quot;:0.01,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Motion&quot;},&quot;layaMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Shadow&quot;,&quot;Active&quot;],&quot;default&quot;:&quot;Shadow&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Operator&quot;},&quot;agentPrompt&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;set up bucketio — https://bucket.io/llms.txt&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Setup&quot;},&quot;installCommand&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;pipx install bucketio&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Setup&quot;},&quot;connectCommand&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;bucketio config set treg.key $TREG_API_KEY&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Setup&quot;},&quot;askCommand&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;bucketio lookup \&quot;Iris Calloway\&quot; \&quot;Meridian Freight\&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Setup&quot;},&quot;repoUrl&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;https://github.com/Mulla759&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Setup&quot;}}">
+class Component extends DCLogic {
+  static FIND = 0.00483;
+  static VERIFY = 0.0019;
+  static CO = [
+    { id:'meridian', name:'Meridian Freight', domain:'meridianfreight.com', pattern:'first.last', seen:14, conf:0.97, trade:'Freight & Shipping' },
+    { id:'harbor', name:'Harbor Line Ferry', domain:'harborline.co', pattern:'flast', seen:6, conf:0.91, trade:'Freight & Shipping' },
+    { id:'tidewater', name:'Tidewater & Co.', domain:'tidewater.co', pattern:'first', seen:4, conf:0.88, trade:'Freight & Shipping' },
+    { id:'eastlake', name:'Eastlake Press', domain:'eastlakepress.com', pattern:'first.last', seen:9, conf:0.95, trade:'Printers & Publishers' },
+    { id:'yardarm', name:'Yardarm Books', domain:'yardarm.com', pattern:'first_last', seen:3, conf:0.82, trade:'Printers & Publishers' },
+    { id:'riverside', name:'Riverside Print', domain:'riversideprint.com', pattern:'last', truth:'first.last', seen:2, conf:0.71, trade:'Printers & Publishers' },
+    { id:'saltmarsh', name:'Saltmarsh Radio', domain:'saltmarsh.fm', pattern:'first', seen:7, conf:0.93, trade:'Radio & Signal' },
+    { id:'zephyr', name:'Zephyr Signal', domain:'zephyrsignal.io', pattern:'firstl', seen:5, conf:0.86, trade:'Radio & Signal' },
+    { id:'bellweather', name:'Bellweather Labs', domain:'bellweather.io', pattern:'flast', seen:11, conf:0.96, trade:'Software' },
+    { id:'northwind', name:'Northwind', domain:'northwind.dev', pattern:'first.last', seen:18, conf:0.98, trade:'Software' },
+    { id:'lantern', name:'Lantern Studio', domain:'lantern.studio', pattern:'first', seen:5, conf:0.9, trade:'Software' },
+    { id:'quarry', name:'Quarry Street', domain:'quarrystreet.com', pattern:'first.l', seen:3, conf:0.77, trade:'Software' },
+    { id:'vesper', name:'Vesper Hotel', domain:'vesperhotel.com', pattern:'first.last', seen:4, conf:0.89, trade:'Hotels & Coffee' },
+    { id:'granary', name:'Granary Coffee', domain:'granary.coffee', pattern:'first', seen:2, conf:0.74, trade:'Hotels & Coffee' },
+    { id:'ironbridge', name:'Ironbridge Health', domain:'ironbridgehealth.org', pattern:'f.last', seen:8, conf:0.94, trade:'Health & Law' },
+    { id:'pinecrest', name:'Pinecrest Legal', domain:'pinecrestlegal.com', pattern:'first.last', seen:3, conf:0.84, trade:'Health & Law' }
+  ];
+  static SEED = "Abernathy,Clara,eastlake;Adeyemi,Tunde,northwind;Alvarez,Marisol,vesper;Baptiste,Jules,saltmarsh;Bergström,Elin,bellweather;Byrne,Declan,meridian;Castellanos,Rita,ironbridge;Chen,Wei,northwind;Cole,Harriet,harbor;Dasgupta,Anjali,bellweather;Delacroix,Noé,lantern;Duarte,Paulo,tidewater;Eastman,Ruth,eastlake;Ekwueme,Chidi,zephyr;Fairweather,Tom,meridian;Farouk,Laila,ironbridge;Fontaine,Odile,vesper;Garza,Beto,granary;Gilchrist,Moira,yardarm;Greaves,Oliver,northwind;Halloran,Maeve,saltmarsh;Hartmann,Lena,bellweather;Hossain,Farhan,quarry;Ibarra,Sofía,lantern;Iwu,Nneka,pinecrest;Jablonski,Piotr,meridian;Jensen,Karin,zephyr;Kaur,Simran,northwind;Kowalczyk,Ada,eastlake;Kuroda,Ren,harbor;Lachance,Guy,riverside;Lindqvist,Maja,bellweather;Lowe,Eliza,pinecrest;Mbeki,Thandi,ironbridge;McFee,William,harbor;Moreau,Céline,vesper;Nakamura,Ellis,quarry;Ndiaye,Awa,saltmarsh;Novak,Tereza,northwind;Okafor,Adaeze,meridian;Olsen,Birgit,tidewater;O’Rourke,Finn,granary;Park,Jiwoo,bellweather;Pereira,Tomás,zephyr;Pryce,Gwen,eastlake;Rahman,Nadia,ironbridge;Reyes,Mateo,lantern;Rosen,Abe,riverside;Sato,Haruki,northwind;Silva,Bruna,vesper;Stroud,Vivian,yardarm;Tanaka,Emi,zephyr;Thibodeaux,Remy,harbor;Trent,Oona,pinecrest;Varga,Zsófia,bellweather;Voss,Anton,meridian;Whitlock,June,eastlake;Wu,Ming,northwind;Yamada,Kei,saltmarsh;Yilmaz,Deniz,quarry;Zhou,Lan,northwind;Zielinski,Marek,ironbridge";
+  static TREG = {
+    orchardbank: { name:'Orchard Bank', domain:'orchardbank.com', pattern:'first.last', trade:'Banks & Credit' },
+    kestrelair: { name:'Kestrel Air', domain:'kestrelair.com', pattern:'flast', trade:'Air Charter' },
+    unionice: { name:'Union Ice', domain:'unionice.co', pattern:'first', trade:'Cold Storage' },
+    caldervoss: { name:'Calder & Voss', domain:'caldervoss.com', pattern:'first_last', trade:'Architects' }
+  };
+  static SEE = { 'Freight & Shipping':'Radio & Signal; Cold Storage', 'Printers & Publishers':'Software', 'Radio & Signal':'Freight & Shipping', 'Software':'Printers & Publishers', 'Hotels & Coffee':'Freight & Shipping (ferries)', 'Health & Law':'Banks & Credit', 'Banks & Credit':'Health & Law', 'Air Charter':'Freight & Shipping', 'Cold Storage':'Hotels & Coffee', 'Architects':'Printers & Publishers' };
+  static TRADES = ['Freight & Shipping','Printers & Publishers','Radio & Signal','Software','Hotels & Coffee','Health & Law','Banks & Credit','Air Charter','Cold Storage','Architects'];
+  static PRESETS = [
+    { n:'01', name:'Adaeze Okafor', co:'Meridian Freight', note:'Already listed' },
+    { n:'02', name:'Iris Calloway', co:'Meridian Freight', note:'House style known' },
+    { n:'03', name:'Hugo Marchetti', co:'Orchard Bank', note:'A stranger' },
+    { n:'04', name:'Mina Sadeghi', co:'Orchard Bank', note:'The next one there' },
+    { n:'05', name:'Tobias Wren', co:'Riverside Print', note:'Gray zone' },
+    { n:'06', name:'Odette Albescu', co:'Foxglove Cartography', note:'Nobody finds her' }
+  ];
+  static slug(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+  static local(p, f, l) { const a = f[0] || '', b = l[0] || ''; return ({ 'first.last': f + '.' + l, flast: a + l, first: f, first_last: f + '_' + l, 'first.l': f + '.' + b, 'f.last': a + '.' + l, firstl: f + b, last: l, lastf: l + a, firstlast: f + l })[p] || (f + '.' + l); }
+  static money(v) { if (!v) return '$0.00'; let s = v.toFixed(5).replace(/0+$/, ''); if ((s.split('.')[1] || '').length < 2) s = v.toFixed(2); return '$' + s; }
+  static sc(v) { return v.toFixed(2).replace(/^0/, ''); }
+  static cmp(a, b) { const S = Component; return S.slug(a.last).localeCompare(S.slug(b.last)) || S.slug(a.first).localeCompare(S.slug(b.first)); }
+  static seedPeople() {
+    const S = Component, byId = {}; S.CO.forEach(c => { byId[c.id] = c; });
+    const seen = {};
+    return S.SEED.split(';').map((r, i) => { const [last, first, co] = r.split(','); return { id: 'p' + i, last, first, co }; }).sort(S.cmp).map(p => {
+      const c = byId[p.co]; const code = !seen[p.co] ? 'FD' : (c.conf < 0.8 ? 'PG' : 'VF'); seen[p.co] = 1;
+      return Object.assign({}, p, { coName: c.name, email: S.local(c.pattern, S.slug(p.first), S.slug(p.last)) + '@' + c.domain, code });
+    });
+  }
+
+  rootRef = React.createRef();
+  state = { companies: Component.CO.map(c => Object.assign({}, c)), people: Component.seedPeople(), name: '', company: '', err: '', ticket: null, revealed: 0, log: [], gray: [], laya: null, cover: null, torn: false, narrow: false, sec: '', folio: 'No. 01' };
+
+  mode() { return this.state.laya || this.props.layaMode || 'Shadow'; }
+  coverKey() { return this.state.cover || (this.props.cover === 'Yellow Pages' ? 'B' : 'A'); }
+  clickMode() { return this.props.coverOpens === 'On click'; }
+
+  dist() {
+    const m = {}; this.state.companies.forEach(c => { m[c.pattern] = (m[c.pattern] || 0) + 1; });
+    const n = this.state.companies.length;
+    return Object.keys(m).map(p => ({ pattern: p, n: m[p], share: m[p] / n })).sort((a, b) => b.n - a.n || a.pattern.localeCompare(b.pattern));
+  }
+
+  cands(co, fs, ls, domain, known) {
+    const S = Component, d = this.dist();
+    let list;
+    if (known) {
+      const others = d.filter(x => x.pattern !== known), tot = others.reduce((a, x) => a + x.share, 0) || 1;
+      list = [{ pattern: known, rules: co.conf }].concat(others.map(x => ({ pattern: x.pattern, rules: (1 - co.conf) * x.share / tot })));
+    } else list = d.map(x => ({ pattern: x.pattern, rules: x.share }));
+    list.sort((a, b) => b.rules - a.rules); list = list.slice(0, 3);
+    if (co.truth && !list.some(x => x.pattern === co.truth)) list[2] = { pattern: co.truth, rules: 0.05 };
+    const rs = list.reduce((a, x) => a + x.rules, 0); list.forEach(x => { x.rules = x.rules / rs; });
+    const small = /studio|coffee|books|cartograph|press|bakery|atelier|workshop|&/i.test(co.name || '');
+    const w = list.map(x => known
+      ? x.rules * (co.truth && co.truth !== known ? (x.pattern === co.truth ? 9 : 1) : (x.pattern === known ? 1.6 : 1))
+      : x.rules * (small ? (x.pattern === 'first' ? 2.6 : 1) : (x.pattern === 'first.last' ? 1.3 : 1)));
+    const ws = w.reduce((a, b) => a + b, 0);
+    list.forEach((x, i) => { x.laya = w[i] / ws; x.email = S.local(x.pattern, fs, ls) + '@' + domain; });
+    return list;
+  }
+
+  candView(list, used, lp, mode) {
+    const S = Component, rTop = list.slice().sort((a, b) => b.rules - a.rules)[0].pattern;
+    return list.map(x => ({ email: x.email, rules: S.sc(x.rules), laya: S.sc(x.laya), mark: x.pattern === used ? '← used' : (x.pattern === lp && mode !== 'Active' ? '· Laya’s pick' : ''), color: x.pattern === used ? '#1B1813' : '#6B655A', rw: x.pattern === rTop ? 700 : 400, lw: x.pattern === lp ? 700 : 400 }));
+  }
+
+  trace(first, last, coStr) {
+    const S = Component, st = this.state, mode = this.mode();
+    const k = S.slug(coStr), fs = S.slug(first), ls = S.slug(last);
+    const co = st.companies.find(c => S.slug(c.name) === k || S.slug(c.domain.split('.')[0]) === k || (k.length >= 4 && S.slug(c.name).startsWith(k)));
+    const skip = (no, q) => ({ no, q, a: 'Not needed.', kind: 'skip', cost: 0, lines: [] });
+    const now = new Date(), pad = n => String(n).padStart(2, '0');
+    const t = { no: String(st.log.length + 1).padStart(4, '0'), party: last.toUpperCase() + ', ' + first, coName: co ? co.name : coStr, when: pad(now.getDate()) + '.' + pad(now.getMonth() + 1) + '.' + String(now.getFullYear()).slice(2) + ' · ' + pad(now.getHours()) + ':' + pad(now.getMinutes()), mode, steps: [], total: 0, mut: {}, first, last };
+    const hit = st.people.find(p => S.slug(p.first) === fs && S.slug(p.last) === ls && (co ? p.co === co.id : S.slug(p.coName) === k));
+    if (hit) {
+      t.steps.push({ no: '01', q: 'In the bucket?', a: 'Yes — listed under ' + hit.last.toUpperCase() + (hit.code === 'PG' ? ', in pencil.' : '.'), kind: 'hit', cost: 0, lines: [{ t: 'SQLite · 1 row', c: '$0.00' }] });
+      t.steps.push(skip('02', 'House style known?'), skip('03', 'Ask Treg to find'), skip('04', 'Pencil it in'));
+      return Object.assign(t, { email: hit.email, code: 'KN', guess: hit.code === 'PG', coName: hit.coName, stamp: 'Answered from the bucket' });
+    }
+    t.steps.push({ no: '01', q: 'In the bucket?', a: 'No listing for ' + t.party + '.', kind: 'miss', cost: 0, lines: [] });
+    const person = (email, code, coId, coName) => ({ id: 'n' + Date.now(), last, first, co: coId, coName, email, code });
+    if (co) {
+      const gray = co.conf < 0.8, truth = co.truth || co.pattern;
+      let order = [co.pattern], cands = null, rp = co.pattern, lp = co.pattern;
+      if (gray) {
+        cands = this.cands(co, fs, ls, co.domain, co.pattern);
+        rp = cands.slice().sort((a, b) => b.rules - a.rules)[0].pattern;
+        lp = cands.slice().sort((a, b) => b.laya - a.laya)[0].pattern;
+        order = cands.slice().sort((a, b) => mode === 'Active' ? b.laya - a.laya : b.rules - a.rules).map(c => c.pattern);
+      }
+      const lines = []; let used = null, cost = 0;
+      for (const p of order) {
+        const em = S.local(p, fs, ls) + '@' + co.domain, ok = p === truth; cost += S.VERIFY;
+        lines.push({ t: 'Treg · verify ' + em + ' → ' + (ok ? 'deliverable' : 'undeliverable'), c: S.money(S.VERIFY) });
+        if (ok) { used = p; break; }
+      }
+      if (!used) used = order[order.length - 1];
+      const email = S.local(used, fs, ls) + '@' + co.domain;
+      t.steps.push({ no: '02', q: 'House style known?', a: gray ? 'Unsure — ' + co.domain + ' is ' + S.sc(co.conf) + ' on ' + co.pattern + '@. Candidates scored.' : 'Yes — ' + co.domain + ' writes ' + co.pattern + '@.', kind: 'hit', cost, lines, cands: cands ? this.candView(cands, used, lp, mode) : null, candNote: mode === 'Active' ? 'Laya is active: its pick settles the tie.' : 'Laya is in shadow: its pick is logged; the rules decide.' });
+      t.steps.push(skip('03', 'Ask Treg to find'), skip('04', 'Pencil it in'));
+      t.total = cost;
+      t.mut.person = person(email, 'VF', co.id, co.name);
+      const switched = used !== co.pattern;
+      t.mut.coUpdate = { id: co.id, seen: co.seen + 1, pattern: used, conf: switched ? 0.76 : Math.min(0.98, +(co.conf + 0.01).toFixed(2)), truth: switched ? undefined : co.truth };
+      if (gray) t.mut.gray = { co: co.name, rules: rp + '@', laya: lp + '@', agree: rp === lp, outcome: rp === lp ? 'Agreed. One verify.' : (mode === 'Active' ? 'Laya settled it. ' + lines.length + ' verify.' : 'Rules kept. Laya ' + (lp === used ? 'was right; ' + (lines.length - 1) + ' verify wasted.' : 'was wrong.')) };
+      return Object.assign(t, { email, code: 'VF', stamp: 'Built & verified' });
+    }
+    t.steps.push({ no: '02', q: 'House style known?', a: 'Never heard of ' + coStr + '.', kind: 'miss', cost: 0, lines: [] });
+    const tw = S.TREG[k];
+    if (tw) {
+      const email = S.local(tw.pattern, fs, ls) + '@' + tw.domain;
+      t.coName = tw.name;
+      t.steps.push({ no: '03', q: 'Ask Treg to find', a: 'Found ' + email + '.', kind: 'hit', cost: S.FIND, lines: [{ t: 'Treg · find → 1 result', c: S.money(S.FIND) }, { t: 'Learned the house style: ' + tw.pattern + '@', c: '$0.00' }] });
+      t.steps.push(skip('04', 'Pencil it in'));
+      t.total = S.FIND;
+      t.mut.coNew = { id: k, name: tw.name, domain: tw.domain, pattern: tw.pattern, seen: 1, conf: 0.86, trade: tw.trade };
+      t.mut.person = person(email, 'FD', k, tw.name);
+      return Object.assign(t, { email, code: 'FD', stamp: 'Found · style learned' });
+    }
+    t.steps.push({ no: '03', q: 'Ask Treg to find', a: 'Nobody found.', kind: 'miss', cost: 0, lines: [{ t: 'Treg · find → 0 results · misses settle at $0.00', c: '$0.00' }] });
+    const domain = k + '.com';
+    const cands = this.cands({ name: coStr }, fs, ls, domain, null);
+    const rp = cands.slice().sort((a, b) => b.rules - a.rules)[0].pattern, lp = cands.slice().sort((a, b) => b.laya - a.laya)[0].pattern;
+    const used = mode === 'Active' ? lp : rp;
+    const email = S.local(used, fs, ls) + '@' + domain;
+    t.steps.push({ no: '04', q: 'Pencil it in', a: 'Most probable: ' + email, kind: 'guess', cost: 0, lines: [{ t: 'Written from learned house styles · unverified', c: '$0.00' }], cands: this.candView(cands, used, lp, mode), candNote: mode === 'Active' ? 'Laya is active: its pick is pencilled in.' : 'Laya is in shadow: its pick is logged; the rules decide.' });
+    t.mut.person = person(email, 'PG', 'x-' + k, coStr);
+    t.mut.gray = { co: coStr, rules: rp + '@', laya: lp + '@', agree: rp === lp, outcome: rp === lp ? 'Agreed. Pencilled in.' : (mode === 'Active' ? 'Laya’s pick pencilled in.' : 'Rules’ pick pencilled in; Laya’s logged.') };
+    return Object.assign(t, { email, code: 'PG', guess: true, stamp: 'Pencilled in' });
+  }
+
+  place(nameStr, coStr) {
+    const parts = String(nameStr || '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length < 2 || !String(coStr || '').trim()) { this.setState({ err: 'A first name, a last name and a company, please.' }); return; }
+    const t = this.trace(parts[0], parts.slice(1).join(' '), String(coStr).trim());
+    (this._timers || []).forEach(clearTimeout); this._timers = [];
+    this.setState({ ticket: t, revealed: 0, err: '', name: nameStr, company: coStr });
+    for (let i = 1; i <= 5; i++) this._timers.push(setTimeout(() => this.setState({ revealed: i }), 300 + i * 520));
+    this._timers.push(setTimeout(() => this.apply(t), 300 + 5 * 520 + 200));
+  }
+
+  apply(t) {
+    const S = Component;
+    this.setState(s => {
+      let companies = s.companies, people = s.people.map(p => p.isNew ? Object.assign({}, p, { isNew: false }) : p);
+      companies = companies.map(c => c.isNew ? Object.assign({}, c, { isNew: false }) : c);
+      if (t.mut.coNew && !companies.some(c => c.id === t.mut.coNew.id)) companies = companies.concat([Object.assign({}, t.mut.coNew, { isNew: true })]);
+      if (t.mut.coUpdate) companies = companies.map(c => c.id === t.mut.coUpdate.id ? Object.assign({}, c, t.mut.coUpdate) : c);
+      if (t.mut.person) people = people.concat([Object.assign({}, t.mut.person, { isNew: true })]).sort(S.cmp);
+      return { companies, people, log: s.log.concat([{ code: t.code, cost: t.total, gray: t.mut.gray ? (t.mut.gray.agree ? 'a' : 'd') : '' }]), gray: t.mut.gray ? [t.mut.gray].concat(s.gray).slice(0, 4) : s.gray };
+    }, () => {
+      const g = window.gsap, root = this.rootRef.current;
+      if (g && root) { const els = root.querySelectorAll('[data-new="true"]'); if (els.length) g.fromTo(els, { backgroundColor: 'rgba(128,90,0,0.34)' }, { backgroundColor: 'rgba(128,90,0,0)', duration: 3, delay: 0.2, ease: 'power1.in' }); }
+      if (window.ScrollTrigger) window.ScrollTrigger.refresh();
+    });
+  }
+
+  go(id) {
+    const el = document.getElementById(id); if (!el) return;
+    if (this.lenis) this.lenis.scrollTo(el, { offset: -62, duration: 1.6 });
+    else window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 62, behavior: 'smooth' });
+  }
+
+  copyText(key, txt) {
+    try { if (navigator.clipboard) navigator.clipboard.writeText(txt).catch(() => this.fallbackCopy(txt)); else this.fallbackCopy(txt); } catch (e) { this.fallbackCopy(txt); }
+    this.setState({ copied: key }); clearTimeout(this._cpT); this._cpT = setTimeout(() => this.setState({ copied: null }), 1800);
+  }
+  fallbackCopy(txt) { try { const a = document.createElement('textarea'); a.value = txt; a.style.position = 'fixed'; a.style.opacity = '0'; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove(); } catch (e) {} }
+
+  tear() {
+    const cmd = this.props.installCommand || 'bucketio serve --db ./bucket.sqlite';
+    try { if (navigator.clipboard) navigator.clipboard.writeText(cmd).catch(() => this.fallbackCopy(cmd)); else this.fallbackCopy(cmd); } catch (e) { this.fallbackCopy(cmd); }
+    const g = window.gsap, root = this.rootRef.current, el = root && root.querySelector('[data-coupon]');
+    if (!g || !el) { this.setState({ torn: true }); return; }
+    g.timeline({ onComplete: () => this.setState({ torn: true }, () => { const k = this.rootRef.current && this.rootRef.current.querySelector('[data-kept]'); if (k) g.from(k, { autoAlpha: 0, y: 14, duration: 0.7, ease: 'power2.out' }); }) })
+      .to(el, { y: 3, rotate: 0.6, duration: 0.12, ease: 'power1.out', transformOrigin: '100% 0%' })
+      .to(el, { y: 2, rotate: -0.4, duration: 0.1 })
+      .to(el, { y: 220, x: 60, rotate: 11, autoAlpha: 0, duration: 1, ease: 'power2.in' });
+  }
+
+  componentDidMount() {
+    this.onResize = () => { const n = window.innerWidth < 820; if (n !== this.state.narrow) this.setState({ narrow: n }); };
+    this.onResize(); window.addEventListener('resize', this.onResize);
+    this._poll = setInterval(() => { if (window.gsap && window.ScrollTrigger && window.Lenis) { clearInterval(this._poll); this.initMotion(); } }, 60);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this._poll); (this._timers || []).forEach(clearTimeout);
+    window.removeEventListener('resize', this.onResize);
+    if (this.ctx) this.ctx.revert();
+    if (this.tlBook) { if (this.tlBook.scrollTrigger) this.tlBook.scrollTrigger.kill(); this.tlBook.kill(); }
+    if (this._tick && window.gsap) window.gsap.ticker.remove(this._tick);
+    if (this.lenis) this.lenis.destroy();
+  }
+
+  initMotion() {
+    const g = window.gsap, ST = window.ScrollTrigger, root = this.rootRef.current; if (!root) return;
+    g.registerPlugin(ST);
+    this.lenis = new window.Lenis({ lerp: this.props.smoothness ?? 0.08, allowNestedScroll: true });
+    this.lenis.on('scroll', ST.update);
+    this._tick = (time) => this.lenis.raf(time * 1000);
+    g.ticker.add(this._tick); g.ticker.lagSmoothing(0);
+    this.ctx = g.context(() => {
+      const header = root.querySelector('[data-header]');
+      ST.create({ trigger: root.querySelector('[data-after-hero]'), start: 'top 80px', onEnter: () => g.to(header, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power2.out' }), onLeaveBack: () => g.to(header, { autoAlpha: 0, y: -10, duration: 0.3 }) });
+      root.querySelectorAll('[data-sec]').forEach(el => ST.create({ trigger: el, start: 'top 90px', end: 'bottom 90px', onToggle: s => { if (s.isActive) this.setState({ sec: el.id, folio: el.getAttribute('data-folio') }); } }));
+      g.utils.toArray(root.querySelectorAll('[data-reveal]')).forEach(el => g.from(el, { autoAlpha: 0, y: 18, duration: 0.9, ease: 'power2.out', scrollTrigger: { trigger: el, start: 'top 90%', once: true } }));
+      g.utils.toArray(root.querySelectorAll('[data-line]')).forEach(el => g.from(el, { autoAlpha: 0, y: 14, duration: 1.1, ease: 'power2.out', scrollTrigger: { trigger: el, start: 'top 92%', once: true } }));
+      root.querySelectorAll('[data-marquee]').forEach(el => { const r = el.getAttribute('data-marquee') === 'r'; g.fromTo(el, { xPercent: r ? -20 : 0 }, { xPercent: r ? 0 : -20, ease: 'none', scrollTrigger: { trigger: el.parentNode, start: 'top bottom', end: 'bottom top', scrub: true } }); });
+    }, root);
+    const bk = root.querySelector('[data-book]');
+    g.from(bk, { y: 40, autoAlpha: 0, duration: 1.1, ease: 'power3.out' });
+    g.from(root.querySelectorAll('[data-intro]'), { y: 14, autoAlpha: 0, duration: 0.8, stagger: 0.12, delay: 0.4, ease: 'power2.out' });
+    g.from(root.querySelector('[data-411]'), { xPercent: -40, autoAlpha: 0, duration: 1.4, delay: 0.5, ease: 'power3.out' });
+    g.from(root.querySelector('[data-cstamp]'), { scale: 1.5, rotate: -16, autoAlpha: 0, duration: 0.5, delay: 1.15, ease: 'power3.out' });
+    this.buildBook();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => ST.refresh());
+  }
+
+  buildBook() {
+    const g = window.gsap, root = this.rootRef.current; if (!g || !root) return;
+    const q = s => root.querySelector(s);
+    const hero = q('[data-hero]'), book = q('[data-book]'), cover = q('[data-cover]'), sf = q('[data-shade-f]'), sb = q('[data-shade-b]'), hint = root.querySelectorAll('[data-hint]');
+    if (this.tlBook) { if (this.tlBook.scrollTrigger) this.tlBook.scrollTrigger.kill(); this.tlBook.kill(); this.tlBook = null; }
+    this._open = false;
+    g.set(cover, { rotateY: 0 }); g.set(book, { xPercent: 0 }); g.set(sf, { opacity: 0 }); g.set(sb, { opacity: 0.45 }); g.set(hint, { autoAlpha: 1 });
+    if (this.clickMode()) return;
+    const shift = () => window.innerWidth >= 820 ? 50 : 0;
+    this.tlBook = g.timeline({ defaults: { ease: 'none' }, scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom bottom', scrub: 0.8, invalidateOnRefresh: true } });
+    this.tlBook.to(hint, { autoAlpha: 0, duration: 0.08 }, 0)
+      .to(cover, { rotateY: -178, duration: 1, ease: 'power2.inOut' }, 0.04)
+      .to(book, { xPercent: shift, duration: 1, ease: 'power2.inOut' }, 0.04)
+      .to(sf, { opacity: 0.55, duration: 0.48, ease: 'power1.in' }, 0.04)
+      .to(sb, { opacity: 0, duration: 0.5, ease: 'power1.out' }, 0.54)
+      .to(q('[data-411]'), { yPercent: -18, duration: 0.6 }, 0.04)
+      .to({}, { duration: 0.2 });
+  }
+
+  toggleBook() {
+    if (!this.clickMode()) return;
+    const g = window.gsap, root = this.rootRef.current; if (!g || !root) return;
+    this._open = !this._open; const o = this._open, q = s => root.querySelector(s);
+    g.to(q('[data-cover]'), { rotateY: o ? -178 : 0, duration: 1.6, ease: 'power2.inOut' });
+    g.to(q('[data-book]'), { xPercent: o && window.innerWidth >= 820 ? 50 : 0, duration: 1.6, ease: 'power2.inOut' });
+    g.to(q('[data-shade-f]'), { opacity: o ? 0.55 : 0, duration: 0.8 });
+    g.to(q('[data-shade-b]'), { opacity: o ? 0 : 0.45, duration: 1, delay: o ? 0.6 : 0 });
+    g.to(root.querySelectorAll('[data-hint]'), { autoAlpha: o ? 0 : 1, duration: 0.3 });
+  }
+
+  componentDidUpdate(pp) {
+    pp = pp || {};
+    const g = window.gsap, root = this.rootRef.current;
+    if (this.lenis && pp.smoothness !== this.props.smoothness) this.lenis.options.lerp = this.props.smoothness ?? 0.08;
+    if (pp.layaMode !== this.props.layaMode && this.state.laya) this.setState({ laya: null });
+    if (pp.cover !== this.props.cover && this.state.cover) this.setState({ cover: null });
+    if (pp.coverOpens !== this.props.coverOpens && g) requestAnimationFrame(() => { this.buildBook(); window.ScrollTrigger.refresh(); });
+    const prevRev = this._prevRevealed; this._prevRevealed = this.state.revealed;
+    if (g && root && this.state.revealed !== prevRev && this.state.revealed > 0) {
+      const r = root.querySelector('[data-row="' + (this.state.revealed - 1) + '"]');
+      if (r && this.state.revealed <= 4) g.from(r, { autoAlpha: 0.2, y: 6, duration: 0.45, ease: 'power2.out' });
+      if (this.state.revealed === 5) { const s = root.querySelector('[data-stamp]'); if (s) g.fromTo(s, { scale: 1.6, autoAlpha: 0, rotate: -16 }, { scale: 1, autoAlpha: 1, rotate: -6, duration: 0.4, ease: 'power3.out' }); }
+    }
+  }
+
+  renderVals() {
+    const S = Component, st = this.state, mode = this.mode(), cov = this.coverKey(), wide = !st.narrow;
+    const go = id => e => { if (e && e.stopPropagation) e.stopPropagation(); this.go(id); };
+    const H = "'Montagu Slab',Georgia,serif";
+    const letters = {};
+    st.people.forEach(p => { const L = (S.slug(p.last)[0] || '?').toUpperCase(); (letters[L] = letters[L] || []).push(p); });
+    const mkP = p => Object.assign({}, p, { newFlag: p.isNew ? 'true' : 'false', emailFont: p.code === 'PG' ? 'PicNic,cursive' : H, emailSize: p.code === 'PG' ? '12.5px' : '11.5px', emailColor: p.code === 'PG' ? '#3F6EA5' : '#1B1813', codeColor: p.code === 'PG' ? '#3F6EA5' : '#6B655A' });
+    const page = (from, to, folio, ad) => {
+      const gs = Object.keys(letters).sort().filter(L => L >= from && L <= to).map(L => ({ letter: L, anchor: 'wp-' + L, people: letters[L].map(mkP) }));
+      const all = [].concat(...gs.map(x => x.people));
+      return { folio, ad, guide: all.length ? all[0].last.toUpperCase() + ' — ' + all[all.length - 1].last.toUpperCase() : '', groups: gs };
+    };
+    const az = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(L => ({ letter: L, color: letters[L] ? '#1B1813' : '#C9C2B2', go: letters[L] ? go('wp-' + L) : () => {} }));
+    const trades = S.TRADES.map(name => ({ name, see: S.SEE[name] || '—', cos: st.companies.filter(c => c.trade === name).map(c => Object.assign({}, c, { label: c.pattern + '@', seenText: c.seen + ' seen', confText: c.conf < 0.8 ? 'Gray zone · ' + S.sc(c.conf) : 'Conf. ' + S.sc(c.conf), confColor: c.conf < 0.8 ? '#A6321F' : '#38342C', newFlag: c.isNew ? 'true' : 'false' })) })).filter(t => t.cos.length);
+    const d = this.dist();
+    const t = st.ticket, rev = st.revealed;
+    const legend = [{ no: '01', q: 'In the bucket?' }, { no: '02', q: 'House style known?' }, { no: '03', q: 'Ask Treg to find' }, { no: '04', q: 'Pencil it in' }];
+    const rows = (t ? t.steps : legend).map((s, i) => {
+      const shown = !!t && i < rev, k = shown ? s.kind : 'idle';
+      return { idx: String(i), no: s.no, q: s.q, shown, a: s.a || '', lines: s.lines || [], hasCands: shown && !!s.cands, cands: s.cands || [], candNote: s.candNote || '',
+        noColor: k === 'hit' ? '#C2412A' : k === 'guess' ? '#3F6EA5' : '#6B655A', qColor: (k === 'idle' || k === 'skip') ? '#9C9587' : '#1B1813',
+        aColor: k === 'miss' ? '#6B655A' : k === 'guess' ? '#3F6EA5' : k === 'skip' ? '#9C9587' : '#1B1813',
+        costText: shown ? (k === 'skip' ? '—' : S.money(s.cost)) : '', costColor: s.cost ? '#1B1813' : '#6B655A' };
+    });
+    const done = !!t && rev >= 5;
+    const res = t ? { last: t.last, first: t.first, coName: t.coName, email: t.email, code: t.code, emailFont: t.guess ? 'PicNic,cursive' : H, emailSize: t.guess ? '14px' : '13px', emailColor: t.guess ? '#3F6EA5' : '#1B1813', codeColor: t.guess ? '#3F6EA5' : '#6B655A' } : {};
+    const L = st.log, cnt = c => L.filter(x => x.code === c).length, billed = L.reduce((a, x) => a + x.cost, 0), every = L.length * S.FIND;
+    const statement = [['Calls placed', String(L.length)], ['From the bucket', String(cnt('KN'))], ['Built & verified', String(cnt('VF'))], ['Found by Treg', String(cnt('FD'))], ['Pencilled in', String(cnt('PG'))], ['Billed', S.money(billed)], ['Every call a find', S.money(every)], ['Saved', L.length ? S.money(every - billed) + ' · ' + Math.round((every - billed) / every * 100) + '%' : '—']].map(([label, v]) => ({ label, v }));
+    const gN = L.filter(x => x.gray).length, aN = L.filter(x => x.gray === 'a').length;
+    const P = this.props, cp = st.copied, C = (k, a, b) => cp === k ? a : b;
+    const agentPrompt = P.agentPrompt || 'set up bucketio — https://bucket.io/llms.txt', installCommand = P.installCommand || 'pipx install bucketio', connectCommand = P.connectCommand || 'bucketio config set treg.key $TREG_API_KEY', askCommand = P.askCommand || 'bucketio lookup "Iris Calloway" "Meridian Freight"';
+    const navColor = id => st.sec === id ? '#C2412A' : '#1B1813';
+    return {
+      rootRef: this.rootRef, wide, notes: this.props.marginNotes !== false,
+      heroH: this.clickMode() ? '100vh' : '240vh', bookCursor: this.clickMode() ? 'pointer' : 'default',
+      hintText: this.clickMode() ? 'Click the cover to open' : 'Scroll to open',
+      bookClick: () => this.toggleBook(),
+      coverA: cov === 'A', coverB: cov === 'B',
+      covABg: cov === 'A' ? '#1B1813' : 'transparent', covAFg: cov === 'A' ? '#FBFAF6' : '#1B1813',
+      covBBg: cov === 'B' ? '#1B1813' : 'transparent', covBFg: cov === 'B' ? '#FBFAF6' : '#1B1813',
+      setCoverA: () => this.setState({ cover: 'A' }), setCoverB: () => this.setState({ cover: 'B' }),
+      goTop: () => { if (this.lenis) this.lenis.scrollTo(0, { duration: 1.4 }); else window.scrollTo({ top: 0, behavior: 'smooth' }); },
+      goLookup: go('lookup'), goRates: go('rates'), goWhite: go('white'), goYellow: go('yellow'), goAssist: go('assist'), goOperator: go('operator'), goOrder: go('order'),
+      navC: { lookup: navColor('lookup'), rates: navColor('rates'), white: navColor('white'), yellow: navColor('yellow'), assist: navColor('assist'), operator: navColor('operator') },
+      folio: st.folio,
+      az, wpPages: [page('A', 'L', '6', false), page('M', 'Z', '7', true)],
+      peopleCount: String(st.people.length), coCount: String(st.companies.length),
+      trades, dist: d.map(x => ({ label: x.pattern + '@', n: String(x.n) })),
+      topLabel: d.length ? d[0].pattern + '@' : '', topCount: d.length ? String(d[0].n) : '0',
+      grayCount: String(st.companies.filter(c => c.conf < 0.8).length),
+      name: st.name, company: st.company, err: st.err, hasErr: !!st.err,
+      onName: e => this.setState({ name: e.target.value }), onCo: e => this.setState({ company: e.target.value }),
+      onKey: e => { if (e.key === 'Enter') this.place(this.state.name, this.state.company); },
+      onPlace: () => this.place(this.state.name, this.state.company),
+      presets: S.PRESETS.map(p => Object.assign({}, p, { go: () => this.place(p.name, p.co) })),
+      ticketNo: t ? t.no : String(L.length + 1).padStart(4, '0'), when: t ? t.when : '—', modeLabel: mode.toLowerCase(),
+      party: t ? t.party : 'Awaiting a call', partyCo: t ? t.coName : 'The line is open.',
+      rows, done, idle: !t, res, stamp: t ? t.stamp : '', totalText: t ? S.money(t.total) : '',
+      statement,
+      sw: { shadowBg: mode === 'Shadow' ? '#1B1813' : 'transparent', shadowFg: mode === 'Shadow' ? '#DADFD9' : '#1B1813', activeBg: mode === 'Active' ? '#1B1813' : 'transparent', activeFg: mode === 'Active' ? '#DADFD9' : '#1B1813' },
+      lad: { shadowNo: mode === 'Shadow' ? '#C2412A' : '#6B655A', shadowBar: mode === 'Shadow' ? '#C2412A' : '#38342C', activeNo: mode === 'Active' ? '#C2412A' : '#6B655A', activeBar: mode === 'Active' ? '#C2412A' : '#38342C' },
+      setShadow: () => this.setState({ laya: 'Shadow' }), setActive: () => this.setState({ laya: 'Active' }),
+      grayLog: st.gray, grayEmpty: !st.gray.length, grayStats: gN + ' gray-zone · Laya agreed ' + aN + ' · disagreed ' + (gN - aN),
+      notTorn: !st.torn, torn: st.torn, tear: () => this.tear(), reprint: () => this.setState({ torn: false }),
+      installCommand: this.props.installCommand || 'bucketio serve --db ./bucket.sqlite',
+      repoUrl: this.props.repoUrl || 'https://github.com/Mulla759',
+      agentPrompt, installCommand, connectCommand, askCommand, agentUrl: (agentPrompt.match(/https?:\/\/\S+/) || ['/llms.txt'])[0].replace(/^https?:\/\//, ''),
+      year: String(new Date().getFullYear()),
+      goFeatures: go('features'), goDocs: go('docs'), goContact: go('contact'), goSetup: go('setup'),
+      navC: { features: navColor('features'), white: navColor('white'), yellow: navColor('yellow'), assist: navColor('assist'), docs: navColor('docs'), contact: navColor('contact') },
+      copyPrompt: e => { if (e && e.stopPropagation) e.stopPropagation(); this.copyText('prompt', agentPrompt); },
+      copyInstall: () => this.copyText('c1', installCommand), copyConnect: () => this.copyText('c2', connectCommand), copyAsk: () => this.copyText('c3', askCommand),
+      copyEmail: () => this.copyText('email', 'abdullahiabdi5600@gmail.com'),
+      copyLbl: { hero: C('prompt', 'Copied ✓', 'Copy the setup command'), board: C('prompt', 'Copied ✓', 'Copy the setup command'), prompt: C('prompt', 'Copied', 'Copy'), c1: C('c1', 'Copied', 'Copy'), c2: C('c2', 'Copied', 'Copy'), c3: C('c3', 'Copied', 'Copy'), email: C('email', 'Copied ✓', 'Copy my email') }
+    };
+  }
+}
+</script>
+</body>
+</html>
