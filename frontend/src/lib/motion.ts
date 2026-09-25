@@ -102,9 +102,9 @@ export function useReveals(): () => void {
     document.querySelectorAll<HTMLElement>("[data-reveal]:not([data-revealed])").forEach((element) => {
       element.dataset.revealed = "1";
       tweens.current.push(
-        gsap.from(element, {
-          autoAlpha: 0,
-          y: 18,
+        gsap.to(element, {
+          autoAlpha: 1,
+          y: 0,
           duration: 0.9,
           ease: "power2.out",
           scrollTrigger: { trigger: element, start: "top 90%", once: true },
@@ -114,9 +114,9 @@ export function useReveals(): () => void {
     document.querySelectorAll<HTMLElement>("[data-line]:not([data-revealed])").forEach((element) => {
       element.dataset.revealed = "1";
       tweens.current.push(
-        gsap.from(element, {
-          autoAlpha: 0,
-          y: 14,
+        gsap.to(element, {
+          autoAlpha: 1,
+          y: 0,
           duration: 1.1,
           ease: "power2.out",
           scrollTrigger: { trigger: element, start: "top 92%", once: true },

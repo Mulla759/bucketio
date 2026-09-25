@@ -131,7 +131,7 @@ export function Contact({ gravatarUrl, email, github, linkedin, x, online }: Con
             <Logo size={20} />
             <span>Not affiliated with Treg. Printed on your own machine.</span>
           </span>
-          <span>Set in Montagu Slab, Basteleur &amp; PicNic</span>
+          <span>Set in Montagu Slab &amp; Basteleur</span>
         </footer>
 
         <div className="folio">— Back cover —</div>

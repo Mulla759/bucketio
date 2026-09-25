@@ -76,6 +76,15 @@ input::placeholder {
   pointer-events: none;
 }
 
+/* Reveal targets start hidden only when JS can animate them, so no-JS and
+   reduced-motion users always see the content straight away. */
+@media (prefers-reduced-motion: no-preference) {
+  html.js [data-reveal],
+  html.js [data-line] {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

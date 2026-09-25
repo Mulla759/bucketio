@@ -62,6 +62,7 @@
 
 .pencil {
   font-family: var(--pencil-face);
+  font-style: italic;
   color: var(--pencil);
 }
 
