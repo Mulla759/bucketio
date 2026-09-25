@@ -4,7 +4,7 @@
      static badge that links to the runs. Swap in the real one once the repo is public:
      [![CI](https://github.com/Mulla759/bucketio/actions/workflows/ci.yml/badge.svg)](https://github.com/Mulla759/bucketio/actions/workflows/ci.yml) -->
 [![CI](https://img.shields.io/badge/CI-GitHub%20Actions-blue?logo=githubactions&logoColor=white)](https://github.com/Mulla759/bucketio/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-201%20passing-brightgreen)](#development)
+[![tests](https://img.shields.io/badge/tests-202%20passing-brightgreen)](#development)
 [![python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](#requirements)
 
 A local, self-hosted contact store (SQLite) that sits **in front of [Treg](https://treg.to)**.
@@ -23,7 +23,7 @@ when `bucketio calibrate` shows it beats the rules.
 
 | | |
 |---|---|
-| **Status** | v1 complete — 201 tests, live-verified end to end |
+| **Status** | v1 complete — 202 tests, live-verified end to end |
 | **Build plan** | [`bucketio.md`](bucketio.md) |
 | **Stack guide** | [`docs/LREG.md`](docs/LREG.md) |
 | **Pass log** | [`PROGRESS.md`](PROGRESS.md) |
@@ -120,7 +120,7 @@ The first two people at `acme.com` cost a find each (`treg_find`) — that is wh
 uv sync --extra dev
 uv run bucketio init
 uv run bucketio fetch "Jane Doe" "Acme Inc" --json   # TREG_MODE=mock by default
-uv run pytest -q                                     # 201 tests, no network
+uv run pytest -q                                     # 202 tests, no network
 ```
 
 ## Quick start (the Lreg bundle)
@@ -232,7 +232,8 @@ correctly enabled nothing (< 50 samples).
 - **The Laya sidecar is local-only.** Setup binds `127.0.0.1`, requires `LAYA_API_KEY`, and
   generates a random key instead of the placeholder. Change it for anything shared.
 - **No shell interpolation.** The treg CLI adapter uses `subprocess.run([...])` with an argument
-  list, a timeout and no `shell=True`; the web UI renders with `textContent`, never `innerHTML`.
+  list, a timeout and no `shell=True`; the web UI renders through React, which escapes every
+  string (no `dangerouslySetInnerHTML` anywhere).
 - **Compliance is yours.** BucketIO stores business contact data only; you are responsible for
   CAN-SPAM/GDPR use of the output. `do_not_contact` rows are excluded from every export.
 
@@ -240,13 +241,26 @@ correctly enabled nothing (< 50 samples).
 
 ```powershell
 uv sync --extra dev
-uv run pytest -q          # 201 tests, no network, no keys
+uv run pytest -q          # 202 tests, no network, no keys
 uv run bucketio --help
 ```
 
 CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs the suite on Python 3.11 and
 3.13 plus an offline CLI smoke test (`init` → `fetch` against the mock). It is intentionally
 light: tests only, no deploy, no secrets, so it cannot block work for environmental reasons.
+
+### Web UI
+
+`bucketio/web` is the built site — it is committed, so `bucketio serve` works from a fresh
+clone. Its source is the Vite + React app in `frontend/`:
+
+```powershell
+cd frontend
+npm install
+npm run dev          # http://127.0.0.1:5173, API proxied to 127.0.0.1:8080
+npm run typecheck    # tsc --noEmit
+npm run build        # writes ../bucketio/web (index.html + assets/)
+```
 
 ## Layout
 
@@ -265,9 +279,13 @@ bucketio/               # the installable package
   report.py             # finds avoided, $ saved, Laya lift
   csv_io.py             # sheet import/export (do_not_contact respected)
   api.py  cli.py        # FastAPI + typer
-  web/                  # index.html, style.css, app.js (no build step)
+  web/                  # the built site (index.html + assets/) that `serve` mounts
+frontend/               # Vite + React source for web/ (npm run build)
+  src/                  # App, one component per section, lib/, styles/
+  assets/               # self-hosted fonts, agent marks, avatar
 scripts/                # setup_lreg.*, run_laya.*, backup.*
-tests/                  # 201 tests; fixtures/treg_mock.json
+tests/                  # 202 tests; fixtures/treg_mock.json
+design/                 # the original phone-book design handoff (prototype, fonts)
 .github/workflows/ci.yml
 docs/LREG.md            # the Laya + treg + BucketIO stack guide
 ```
